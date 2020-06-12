@@ -6,11 +6,13 @@
   "scripts": {
     "start-deamon": "forever start main.js",
     "stop-deamon": "forever stop main.js",
-    "start": "node main.js"
+    "start": "node main.js",
+    "start-server": "node ./local_test_server/server.js"
   },
   "author": "Zigridar",
   "license": "ISC",
   "dependencies": {
+    "express": "4.17.1",
     "forever": "3.0.0",
     "hotkeys-js": "3.8.1",
     "iohook": "0.6.5",

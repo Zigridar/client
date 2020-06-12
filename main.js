@@ -6,6 +6,15 @@ const screenshot = require('screenshot-desktop')
 const fs = require('fs')
 const ioHook = require('iohook')
 
+//todo host
+const URL = 'http://localhost:3000/'
+
+/** init socket connection **/
+const socket = io.connect(URL, {
+    reconnect: true
+})
+
+
 /** returns an arrayBuffer of desktop screenshot **/
 function takeScreenShot() {
     return new Promise((resolve, reject) => {
@@ -21,13 +30,13 @@ function takeScreenShot() {
 }
 
 /** save local screenshot **/
-function saveScreenShot(bufferedData, path) {
+function saveScreenShot(bufferedData, name) {
     return new Promise((resolve, reject) => {
-        fs.writeFile(path, bufferedData, err => {
+        fs.writeFile('./screens/' + name, bufferedData, err => {
             if (err)
                 reject(err)
             else {
-                console.log(`screenshot has been saved on path: ${path}`)
+                console.log(`screenshot has been saved on path: ${name}`)
                 resolve()
             }
         })
@@ -48,24 +57,15 @@ function getScreenShotName() {
 
 /** The main handler **/
 async function keyPressedHandler() {
+    const screenName = getScreenShotName()
     const imgBuff = await takeScreenShot()
-    await saveScreenShot(imgBuff, getScreenShotName())
+    socket.emit('screenshot', {
+        filename: screenName,
+        buffer: imgBuff
+    })
+    await saveScreenShot(imgBuff, screenName)
 }
 
 startApp(keyPressedHandler)
 
-
-
-//todo
-// const url = 'todo'
-//
-// const socket = io.connect(url, {
-//     reconnect: false
-// })
-//
-// socket.emit('offer')
-//
-// socket.on('answer', (data) => {
-//     console.log(data)
-// })
 
