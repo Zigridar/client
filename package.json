@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start-deamon": "forever start main.js",
-    "stop-deamon": "forever stop main.js",
+    "daemon": "forever start main.js",
+    "daemon-stop": "forever stop main.js",
     "start": "node main.js",
-    "start-server": "node ./local_test_server/server.js"
+    "server": "node ./local_test_server/server.js"
   },
   "author": "Zigridar",
   "license": "ISC",

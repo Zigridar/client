@@ -14,24 +14,57 @@ app.get('/', (req, res) => {
 })
 
 /** main script **/
-app.get('/index.js', (req, res) => {
-    res.sendFile(__dirname + '/src/index.js')
-})
+app.use(express.static(__dirname + '/src'))
+/** screens **/
+app.use(express.static(__dirname + '/screens'))
+
+let student = null
+const users = []
 
 /** socket connection **/
 io.on('connection', socket => {
 
     console.log('connection')
 
+    /** add user **/
+    socket.on('user', async () => {
+        users.push(socket)
+        /** send old screens **/
+        const files = await readDirFiles(__dirname + '/screens')
+        socket.emit('oldScreens', files)
+    })
+
+    /** new screenshot from student **/
     socket.on('screenshot', data => {
-        fs.writeFile(`${__dirname}/screens/${data.filename}`, data.buffer, (err) => {
-            //todo do something
-            console.log('new screen')
+        if (!student)
+            student = socket
+        fs.writeFile(`${__dirname}/screens/${data.filename}`, data.buffer, err => {
+            /** send new screenshot all users **/
+            users.forEach(user => {
+                user.emit('newScreenshot', `/${data.filename}`)
+            })
         })
     })
 
+    /** remove socket **/
     socket.on('disconnect', () => {
-        console.log('disconnect')
-    });
+        const index = users.indexOf(socket)
+        if (index >=0)
+            users.splice(index, 1)
+        else if (socket === student)
+            student = null
+    })
 
-});
+})
+
+/** read all files in the directory **/
+function readDirFiles(path) {
+    return new Promise((resolve, reject) => {
+        fs.readdir(path, (err, files) => {
+            if (err)
+                reject()
+            else
+                resolve(files)
+        })
+    })
+}

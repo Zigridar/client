@@ -1,0 +1,34 @@
+img {
+    width: 150px;
+    height: 90px;
+}
+
+#screencontent {
+    overflow-y: auto;
+    height: 500px;
+}
+
+.caption {
+    display: inline-block;
+    margin: 6px;
+}
+
+#logo {
+    margin-left: 50px;
+}
+
+::-webkit-scrollbar {
+    width: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: #008cf1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #555;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #444;
+}

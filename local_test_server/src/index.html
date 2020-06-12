@@ -2,15 +2,47 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Тащим</title>
+    <title>Сукес Икзам</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery@1.7.0/dist/js/lightgallery-all.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@1.7.0/src/css/lightgallery.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-mousewheel/3.1.13/jquery.mousewheel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/8.11.8/sweetalert2.min.css" integrity="sha256-2bAj1LMT7CXUYUwuEnqqooPb1W0Sw0uKMsqNH0HwMa4=" crossorigin="anonymous" />
 </head>
-<body>
+<body class="indigo lighten-5">
+    <nav>
+        <div class="nav-wrapper deep-purple darken-2">
+            <a class="brand-logo left">
+                <i id="logo" class="material-icons">visibility</i>
+                <i class="material-icons">airline_seat_legroom_reduced</i>
+                Success Exam
+            </a>
+        </div>
+    </nav>
+    <!-- Page Content goes here -->
+    <div class="row">
+        <div class="col s8">
+            <div class="card">
+                <div class="card-action deep-purple">
+                    <a>Screenshots</a>
+                </div>
+                <div class="card-content indigo lighten-4" id="screencontent">
+                    <div id="lightgallery">
+<!--                        screens container-->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col s4">
 
-
+        </div>
+    </div>
+<!--    main scripts-->
     <script src="/socket.io/socket.io.js"></script>
     <script src="/index.js"></script>
 </body>
