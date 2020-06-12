@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "hotkeys-js": "3.8.1",
+    "iohook": "0.6.5",
     "screenshot-desktop": "1.12.1",
     "socket.io": "2.3.0"
   }

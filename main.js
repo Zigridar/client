@@ -1,9 +1,10 @@
 'use strict'
 
+/** import libraries **/
 const io = require('socket.io-client')
-
 const screenshot = require('screenshot-desktop')
 const fs = require('fs')
+const ioHook = require('iohook')
 
 /** return an arrayBuffer of desktop screenshot **/
 function takeScreenShot() {
@@ -27,6 +28,22 @@ function saveScreenShot(bufferedData, path) {
         })
     })
 }
+
+/** run application with the shortcut handler **/
+function startApp(shortCutHandler) {
+    /** ctrl + left shift **/
+    ioHook.registerShortcut([29, 42], shortCutHandler)
+    ioHook.start()
+}
+
+/** test function **/
+function testFoo() {
+    console.log('foo')
+}
+
+startApp(testFoo)
+
+
 
 //todo
 // const url = 'todo'
