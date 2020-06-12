@@ -6,11 +6,14 @@ const screenshot = require('screenshot-desktop')
 const fs = require('fs')
 const ioHook = require('iohook')
 
-/** return an arrayBuffer of desktop screenshot **/
+/** returns an arrayBuffer of desktop screenshot **/
 function takeScreenShot() {
     return new Promise((resolve, reject) => {
         screenshot()
-            .then(imgBuffer => resolve(imgBuffer))
+            .then(imgBuffer => {
+                console.log('screenshot has been taken')
+                resolve(imgBuffer)
+            })
             .catch(err => {
                 reject(err)
             })
@@ -23,8 +26,10 @@ function saveScreenShot(bufferedData, path) {
         fs.writeFile(path, bufferedData, err => {
             if (err)
                 reject(err)
-            else
+            else {
+                console.log(`screenshot has been saved on path: ${path}`)
                 resolve()
+            }
         })
     })
 }
@@ -36,12 +41,18 @@ function startApp(shortCutHandler) {
     ioHook.start()
 }
 
-/** test function **/
-function testFoo() {
-    console.log('foo')
+/** returns name for new screenshot based on current date-time **/
+function getScreenShotName() {
+    return `${(new Date).toLocaleString().replace(', ', '-')}.png`
 }
 
-startApp(testFoo)
+/** The main handler **/
+async function keyPressedHandler() {
+    const imgBuff = await takeScreenShot()
+    await saveScreenShot(imgBuff, getScreenShotName())
+}
+
+startApp(keyPressedHandler)
 
 
 
