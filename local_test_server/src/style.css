@@ -1,16 +1,28 @@
 img {
-    width: 150px;
+    width: 160px;
     height: 90px;
 }
 
-#screencontent_new, #screencontent_old {
+#screencontent_new, #screencontent_old, #question_card {
     overflow-y: auto;
     max-height: 500px;
 }
 
+.question_btn {
+    width: 50px;
+}
+
+.header_btn {
+    height: 12px;
+}
+
 .caption {
     display: inline-block;
-    margin: 6px;
+    margin: 12px;
+}
+
+.btn {
+    margin: 4px;
 }
 
 #logo {
