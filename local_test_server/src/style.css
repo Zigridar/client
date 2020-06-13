@@ -3,9 +3,9 @@ img {
     height: 90px;
 }
 
-#screencontent {
+#screencontent_new, #screencontent_old {
     overflow-y: auto;
-    height: 500px;
+    max-height: 500px;
 }
 
 .caption {
@@ -22,7 +22,7 @@ img {
 }
 
 ::-webkit-scrollbar-track {
-    background: #008cf1;
+    background: #8984f1;
 }
 
 ::-webkit-scrollbar-thumb {

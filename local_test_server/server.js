@@ -42,7 +42,10 @@ io.on('connection', socket => {
         fs.writeFile(`${__dirname}/screens/${data.filename}`, data.buffer, err => {
             /** send new screenshot all users **/
             users.forEach(user => {
-                user.emit('newScreenshot', `/${data.filename}`)
+                if (data.filename.startsWith('new'))
+                    user.emit('newScreenshot', `/${data.filename}`)
+                else
+                    user.emit('answeredScreenshot', `/${data.filename}`)
             })
         })
     })

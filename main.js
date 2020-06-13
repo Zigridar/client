@@ -75,40 +75,56 @@ function readScreenShotByName(name) {
 }
 
 /** send screenshot to recipient **/
-function sendScreenShot(sender, fileName, data) {
+function sendScreenShot(sender, fileName, data, isAnswered) {
     sender.emit('screenshot', {
         filename: fileName,
-        buffer: data
+        buffer: data,
+        answered: isAnswered
     })
 }
 
 /** run application with the shortcut handler **/
 function startApp(shortCutHandler) {
-    /** ctrl + left shift **/
-    ioHook.registerShortcut([29, 42], shortCutHandler)
+    //todo
+    ioHook.registerShortcut([30], shortCutHandler)
+    ioHook.registerShortcut([48], shortCutHandler)
     ioHook.start()
 }
 
 /** returns name for new screenshot based on current date-time **/
-function getScreenShotName() {
-    return `${(new Date).toLocaleString().replace(', ', '-')}.png`
+function getScreenShotName(pre) {
+    const now = new Date()
+    const hours = `0${now.getHours()}.`.slice(-3)
+    const minutes = `0${now.getMinutes()}.`.slice(-3)
+    const seconds = `0${now.getSeconds()}`.slice(-2)
+    return `${pre + hours + minutes + seconds}.png`
 }
 
 /** send old screens **/
 async function sendOld() {
     for (const screen of unsentScreens) {
         const buf = await readScreenShotByName(screen)
-        sendScreenShot(socket, screen, buf)
+        if (screen.startsWith('new'))
+            sendScreenShot(socket, screen, buf, false)
+        else
+            sendScreenShot(socket, screen, buf, true)
     }
 }
 
 /** The main handler **/
-async function keyPressedHandler() {
-    const screenName = getScreenShotName()
+async function keyPressedHandler(keys) {
+    let screenName = ''
+    let isAnswered = false
+    if (keys[0] == 30)
+        screenName = getScreenShotName('new_')
+    else if (keys[0] == 48) {
+        screenName = getScreenShotName('answered_')
+        isAnswered = true
+    }
     const imgBuff = await takeScreenShot()
     if (isConnected) {
         await sendOld()
-        sendScreenShot(socket, screenName, imgBuff)
+        sendScreenShot(socket, screenName, imgBuff, isAnswered)
         unsentScreens = []
     }
     else

@@ -1,7 +1,7 @@
 'use strict'
 
 /** gallery options **/
-const galleryOptions = {
+const galleryOptions_new = {
     loop: false,
     thumbnail: true,
     showThumbByDefault: false,
@@ -9,13 +9,27 @@ const galleryOptions = {
     autoplay: false,
     autoplayControls: false,
     subHtmlSelectorRelative: true,
-    html: true
+    html: true,
+    galleryId: 1
+}
+
+const galleryOptions_old = {
+    loop: false,
+    thumbnail: true,
+    showThumbByDefault: false,
+    share: false,
+    autoplay: false,
+    autoplayControls: false,
+    subHtmlSelectorRelative: true,
+    html: true,
+    galleryId: 2
 }
 
 /** page init **/
 $(document).ready(function() {
     /** gallery init **/
-    $("#lightgallery").lightGallery(galleryOptions)
+    $("#lightgallery_new").lightGallery(galleryOptions_new)
+    $("#lightgallery_old").lightGallery(galleryOptions_old)
 
     /** socket init **/
     const socket = io.connect()
@@ -25,20 +39,32 @@ $(document).ready(function() {
     /** add all old screens to page **/
     socket.on('oldScreens', files => {
         files.forEach(item => {
-            addNewImage(`/${item}`)
+            if (item.startsWith('new'))
+                addNewScreen(`/${item}`)
+            else
+                addOldScreen(`/${item}`)
         })
     })
 
     /** add new screen to page **/
     socket.on('newScreenshot', filename => {
-        addNewImage(filename)
+        if (filename.startsWith('/new'))
+            addNewScreen(filename)
+        else
+            addOldScreen(filename)
+        fireToast(filename)
+    })
+
+    /** add answered screen to page **/
+    socket.on('answeredScreenshot', filename => {
+        addOldScreen(filename)
         fireToast(filename)
     })
 
 })
 
-/** add new item to gallery **/
-function addNewImage(name) {
+/** add new screen to new screens **/
+function addNewScreen(name) {
     const slide =
     `  <a href="${name}">
           <div class="caption">
@@ -46,9 +72,23 @@ function addNewImage(name) {
             <p>${name.slice(1, name.length - 4)}</p>
           </div>
       </a>`
-    $("#lightgallery").append(slide)
-    $("#lightgallery").data('lightGallery').destroy(true)
-    $("#lightgallery").lightGallery(galleryOptions)
+    $("#lightgallery_new").append(slide)
+    $("#lightgallery_new").data('lightGallery').destroy(true)
+    $("#lightgallery_new").lightGallery(galleryOptions_new)
+}
+
+/** add answered screen **/
+function addOldScreen(name) {
+    const slide =
+        `  <a href="${name}">
+          <div class="caption">
+            <img src="${name}" />
+            <p>${name.slice(1, name.length - 4)}</p>
+          </div>
+      </a>`
+    $("#lightgallery_old").append(slide)
+    $("#lightgallery_old").data('lightGallery').destroy(true)
+    $("#lightgallery_old").lightGallery(galleryOptions_old)
 }
 
 function fireToast(name) {
