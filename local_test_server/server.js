@@ -31,6 +31,7 @@ io.on('connection', socket => {
         users.push(socket)
         /** send old screens **/
         const files = await readDirFiles(__dirname + '/screens')
+        files.splice(files.indexOf(/readme/gm), 1)
         socket.emit('oldScreens', files)
     })
 
