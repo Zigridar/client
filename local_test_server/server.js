@@ -17,9 +17,28 @@ app.get('/', (req, res) => {
 app.use(express.static(__dirname + '/src'))
 /** screens **/
 app.use(express.static(__dirname + '/screens'))
+app.use(express.static(__dirname + '/src/notification_audio'))
 
+/** global variables **/
 let student = null
 const users = []
+const questionContainer = []
+
+/** question status enum **/
+const QuestionStatus = {
+    none: 1,
+    received: 2,
+    resolving: 3,
+    suspended: 4,
+    done: 5
+}
+/** freeze enum **/
+Object.freeze(QuestionStatus)
+
+/** init question container **/
+for (let i = 1; i<= 84; i++) {
+    questionContainer.push(QuestionStatus.none)
+}
 
 /** socket connection **/
 io.on('connection', socket => {
@@ -33,6 +52,13 @@ io.on('connection', socket => {
         const files = await readDirFiles(__dirname + '/screens')
         files.splice(files.indexOf(/readme/gm), 1)
         socket.emit('oldScreens', files)
+        /** send all question statuses **/
+        for (let i = 0; i <= 83; i++) {
+            socket.emit('questionStatusFromServer', {
+                id: i + 1,
+                status: questionContainer[i]
+            })
+        }
     })
 
     /** new screenshot from student **/
@@ -48,6 +74,12 @@ io.on('connection', socket => {
                     user.emit('answeredScreenshot', `/${data.filename}`)
             })
         })
+    })
+
+    /** receive new question status from node **/
+    socket.on('questionStatusFromNode', data => {
+        questionContainer[data.id - 1] = data.status
+        socket.broadcast.emit('questionStatusFromServer', data)
     })
 
     /** remove socket **/

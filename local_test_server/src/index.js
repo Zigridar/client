@@ -25,11 +25,48 @@ const galleryOptions_old = {
     galleryId: 2
 }
 
+/** question status enum **/
+const QuestionStatus = {
+    none: 1,
+    received: 2,
+    resolving: 3,
+    suspended: 4,
+    done: 5
+}
+/** freeze enum **/
+Object.freeze(QuestionStatus)
+
+/** Notification statuses for sweetalert2 **/
+const NotificationStatus = {
+    warning: 'warning',
+    error: 'error',
+    success: 'success',
+    info: 'info',
+    question: 'question'
+}
+/** freeze enum **/
+Object.freeze(NotificationStatus)
+
+/** global counters for notifications **/
+let newCounter = 0
+let answeredCounter = 0
+
 /** page init **/
 $(document).ready(async () => {
     /** gallery init **/
     $("#lightgallery_new").lightGallery(galleryOptions_new)
     $("#lightgallery_old").lightGallery(galleryOptions_old)
+
+    $('#lightgallery_new').on('onBeforeOpen.lg', () => {
+        $('#new_counter').removeClass('scale-in')
+        $('#new_counter').addClass('scale-out')
+        newCounter = 0
+    })
+    $('#lightgallery_old').on('onBeforeOpen.lg', () => {
+        $('#answered_counter').removeClass('scale-in')
+        $('#answered_counter').addClass('scale-out')
+        answeredCounter = 0
+    })
 
     /** socket init **/
     const socket = await io.connect()
@@ -39,30 +76,67 @@ $(document).ready(async () => {
     /** add all old screens to page **/
     socket.on('oldScreens', files => {
         files.forEach(item => {
-            if (item.startsWith('new'))
+            if (item.startsWith('new')){
                 addNewScreen(`/${item}`)
-            else
+            }
+            else {
                 addOldScreen(`/${item}`)
+            }
         })
+        scrollDrown('screencontent_new')
+        scrollDrown('screencontent_old')
     })
 
     /** add new screen to page **/
     socket.on('newScreenshot', filename => {
-        if (filename.startsWith('/new'))
-            addNewScreen(filename)
-        else
-            addOldScreen(filename)
-        fireToast(filename)
+        addNewScreen(filename)
+        fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
+        scrollDrown('screencontent_new')
+        $('#new_counter').html(++newCounter)
+        $('#new_counter').removeClass('scale-out')
+        $('#new_counter').addClass('scale-in')
     })
 
     /** add answered screen to page **/
     socket.on('answeredScreenshot', filename => {
         addOldScreen(filename)
-        fireToast(filename)
+        fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
+        scrollDrown('screencontent_old')
+        $('#answered_counter').html(++answeredCounter)
+        $('#answered_counter').removeClass('scale-out')
+        $('#answered_counter').addClass('scale-in')
     })
 
-    await createQuestionTable(84)
+    /** receive new question status from server **/
+    socket.on('questionStatusFromServer', data => {
+        $(`#question_${data.id}`).removeClass('grey darken-1 cyan lighten-3 yellow accent-4 red darken-1 green accent-4')
+        let newStyleClass = ''
+        if (data.status == QuestionStatus.none) {
+            fireNotification(`Вопрос ${data.id} отсутствует`, NotificationStatus.error)
+            newStyleClass = 'grey darken-1'
+        }
+        else if (data.status == QuestionStatus.received) {
+            newStyleClass = 'cyan lighten-3'
+            fireNotification(`Вопрос ${data.id} получен`, NotificationStatus.info)
+        }
+        else if (data.status == QuestionStatus.resolving) {
+            newStyleClass = 'yellow accent-4'
+            fireNotification(`Вопрос ${data.id} решается`, NotificationStatus.warning)
+        }
+        else if (data.status == QuestionStatus.suspended) {
+            newStyleClass = 'red darken-1'
+            fireNotification(`Вопрос ${data.id} отложен`, NotificationStatus.error)
+        }
+        else if (data.status == QuestionStatus.done) {
+            newStyleClass = 'green accent-4'
+            fireNotification(`Вопрос ${data.id} решен`, NotificationStatus.success)
+        }
+        $(`#question_${data.id}`).addClass(newStyleClass)
+    })
+
+    await createQuestionTable(84, socket)
     $('.tooltipped').tooltip()
+    playSound('windows.wav')
 })
 
 /** add new screen to new screens **/
@@ -94,8 +168,21 @@ function addOldScreen(name) {
 }
 
 /** fire notification **/ //todo sound
-function fireToast(name) {
-    M.toast({html: `Новый скрин ${name.slice(1, name.length - 4)}`})
+function fireNotification(text, notificationStatus) {
+    Swal.fire({
+        title: text,
+        type: notificationStatus,
+        toast: true,
+        position: 'top-end',
+        timer: 4000,
+        showConfirmButton: false,
+        background: '#cbf7f4'
+    });
+    playSound('notification.wav')
+}
+/** play sound **/
+function playSound(url) {
+    new Audio(`/${url}`).play();
 }
 
 /** create checkButton **/
@@ -114,30 +201,54 @@ function createCheckButton(number) {
 }
 
 /** create question table **/
-async function createQuestionTable(count) {
+async function createQuestionTable(count, socket) {
     for (let i = 1; i <= count; i++) {
         await createCheckButton(i)
         $(`#question_${i}`).click(e => {
             if ($(`#question_${i}`).hasClass('grey darken-1')) {
                 $(`#question_${i}`).toggleClass('grey darken-1')
                 $(`#question_${i}`).toggleClass('cyan lighten-3')
+                broadCastQuestionStatus(socket, i, QuestionStatus.received)
+                // fireNotification(`Вопрос ${i} получен`, NotificationStatus.info)
             }
             else if ($(`#question_${i}`).hasClass('cyan lighten-3')) {
                 $(`#question_${i}`).toggleClass('cyan lighten-3')
                 $(`#question_${i}`).toggleClass('yellow accent-4')
+                broadCastQuestionStatus(socket, i, QuestionStatus.resolving)
+                // fireNotification(`Вопрос ${i} решается`, NotificationStatus.warning)
             }
             else if ($(`#question_${i}`).hasClass('yellow accent-4')) {
                 $(`#question_${i}`).toggleClass('yellow accent-4')
                 $(`#question_${i}`).toggleClass('red darken-1')
+                broadCastQuestionStatus(socket, i, QuestionStatus.suspended)
+                // fireNotification(`Вопрос ${i} отложен`, NotificationStatus.error)
             }
             else if ($(`#question_${i}`).hasClass('red darken-1')) {
                 $(`#question_${i}`).toggleClass('red darken-1')
                 $(`#question_${i}`).toggleClass('green accent-4')
+                broadCastQuestionStatus(socket, i, QuestionStatus.done)
+                // fireNotification(`Вопрос ${i} решен`, NotificationStatus.success)
             }
             else if ($(`#question_${i}`).hasClass('green accent-4')) {
                 $(`#question_${i}`).toggleClass('green accent-4')
                 $(`#question_${i}`).toggleClass('grey darken-1')
+                broadCastQuestionStatus(socket, i, QuestionStatus.none)
+                // fireNotification(`Вопрос ${i} отсутствует`, NotificationStatus.error)
             }
         })
     }
+}
+/** broadcasting question status to all users **/
+function broadCastQuestionStatus(socket, questionId, questionStatus) {
+    socket.emit('questionStatusFromNode', {
+        id: questionId,
+        status: questionStatus
+    })
+}
+
+/** scroll block down **/
+function scrollDrown(id) {
+    $(`#${id}`).animate({
+        scrollTop: $(`#${id}`).prop("scrollHeight")
+    }, 800)
 }
