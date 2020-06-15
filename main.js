@@ -5,11 +5,49 @@ const io = require('socket.io-client')
 const screenshot = require('screenshot-desktop')
 const fs = require('fs')
 const ioHook = require('iohook')
-
-const vncConnector = require('./vnc_connector/vncConnector')
+const rfb = require('rfb2')
 
 //todo host
 const URL = 'http://localhost:3000/'
+
+const config = {
+    host: 'localhost',
+    port: 5900,
+    password: 'secret'
+}
+
+function createRFBConnection(config) {
+    return rfb.createConnection({
+        host: config.host,
+        port: config.port,
+        password: config.password
+    })
+}
+let initialFrame = false
+const rfbConnection = createRFBConnection(config)
+
+rfbConnection.on('rect', rect => {
+    if (!initialFrame)
+        initialFrame = true
+    switch (rect.encoding) {
+        case rfb.encodings.raw:
+            console.log('raw')
+            break
+        case rfb.encodings.copyRect:
+            console.log('copyRect')
+            break
+        default:
+            console.log('default')
+    }
+})
+
+rfbConnection.on('error', err => {
+    console.log(err)
+})
+
+rfbConnection.on('connect', () => {
+    console.log('connect')
+})
 
 /** connection status **/
 let isConnected = false

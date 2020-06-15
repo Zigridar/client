@@ -17,7 +17,8 @@
     "forever": "3.0.0",
     "hotkeys-js": "3.8.1",
     "iohook": "0.6.5",
-    "rfb2": "0.2.2",
+    "rfb2": "^0.0.10",
+    "pngjs": "^2.0.0",
     "screenshot-desktop": "1.12.1",
     "socket.io": "2.3.0"
   }
