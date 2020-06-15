@@ -6,6 +6,8 @@ const screenshot = require('screenshot-desktop')
 const fs = require('fs')
 const ioHook = require('iohook')
 
+const vncConnector = require('./vnc_connector/vncConnector')
+
 //todo host
 const URL = 'http://localhost:3000/'
 
@@ -31,6 +33,23 @@ socket.on('connect', async () => {
 socket.on('disconnect', () => {
     console.log('disconnect')
     isConnected = false
+    //todo func
+    disconnectClient(socket)
+})
+
+socket.on('init', (config) => {
+    //todo func
+    const r = vncConnector.createRfbConnection(config, socket)
+
+    socket.on('mouse', event => {
+        //todo func
+        r.pointEvent(event.x, event.y, event.button)
+    })
+
+    socket.on('keyboard', event => {
+        //todo func
+        r.keyEvent(event.keyCode, event.isDown)
+    })
 })
 
 
