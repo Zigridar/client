@@ -7,8 +7,7 @@
     "daemon": "forever start main.js",
     "daemon-stop": "forever stop main.js",
     "start": "node main.js",
-    "server": "node ./local_test_server/server.js",
-    "build-png": "cd ./node_modules&& git clone https://github.com/Garciat/node-png.git&& cd ./node-png&& node-gyp configure build"
+    "server": "node ./local_test_server/server.js"
   },
   "author": "Zigridar",
   "license": "ISC",

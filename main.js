@@ -7,47 +7,25 @@ const fs = require('fs')
 const ioHook = require('iohook')
 const rfb = require('rfb2')
 
-//todo host
-const URL = 'http://localhost:3000/'
-
+//todo file
+//todo keys
 const config = {
     host: 'localhost',
-    port: 5900,
-    password: 'secret'
+    port: 5901,
+    password: 'secret',
+    serverUrl: 'http://localhost:3000/',
+    newScreenshotBtns: [30],
+    answeredScreenshotBtns: [48],
+    startControlBtns: [0],
+    stopControlBtns: [0]
 }
 
-function createRFBConnection(config) {
-    return rfb.createConnection({
-        host: config.host,
-        port: config.port,
-        password: config.password
-    })
-}
-let initialFrame = false
-const rfbConnection = createRFBConnection(config)
+//todo disable screenshot when remote control is enabled
 
-rfbConnection.on('rect', rect => {
-    if (!initialFrame)
-        initialFrame = true
-    switch (rect.encoding) {
-        case rfb.encodings.raw:
-            console.log('raw')
-            break
-        case rfb.encodings.copyRect:
-            console.log('copyRect')
-            break
-        default:
-            console.log('default')
-    }
-})
-
-rfbConnection.on('error', err => {
-    console.log(err)
-})
-
-rfbConnection.on('connect', () => {
-    console.log('connect')
-})
+/**
+ * global variables
+ *
+ * */
 
 /** connection status **/
 let isConnected = false
@@ -55,41 +33,81 @@ let isConnected = false
 /** unsent screens storage  **/
 let unsentScreens = []
 
+/** check initial rbc connection initial stream **/
+let initialFrame = false
+
+/** remote control permission **/
+let remoteControlPermission = false
+
 /** init socket connection **/
-const socket = io.connect(URL, {
+const socket = io.connect(config.serverUrl, {
     reconnect: true
+})
+
+/** init RFB connection **/
+const rfbConnection = rfb.createConnection({
+    host: config.host,
+    port: config.port,
+    password: config.password,
+    encodings: [rfb.encodings.raw]
+})
+
+/** update screen event **/
+rfbConnection.on('rect', rect => {
+    if (!initialFrame)
+        initialFrame = true
+
+    console.log(rect)
+
+    // if (remoteControlPermission)
+        sendRawFrame(rect)
+})
+
+/** RFB error **/
+rfbConnection.on('error', err => {
+    console.error('RFB ERROR')
+    console.error(err)
+})
+
+/** RFB connect event **/
+rfbConnection.on('connect', () => {
+    console.log('RFB connection')
 })
 
 /** connection event **/
 socket.on('connect', async () => {
-    console.log('connect')
+    console.log('socket connection')
     isConnected = true
     await sendOld()
 })
 
 /** disconnect event **/
 socket.on('disconnect', () => {
-    console.log('disconnect')
+    console.error('socket has been disconnected')
     isConnected = false
-    //todo func
-    disconnectClient(socket)
 })
 
-socket.on('init', (config) => {
-    //todo func
-    const r = vncConnector.createRfbConnection(config, socket)
-
-    socket.on('mouse', event => {
-        //todo func
-        r.pointEvent(event.x, event.y, event.button)
-    })
-
-    socket.on('keyboard', event => {
-        //todo func
-        r.keyEvent(event.keyCode, event.isDown)
-    })
+/** mouse control listener **/
+socket.on('mouse', mouse => {
+    if (remoteControlPermission) {
+        rfbConnection.pointerEvent(mouse.x, mouse.y, mouse.button)
+        updateScreen()
+    }
 })
 
+/** keyboard control listener **/
+socket.on('keyboard', keyboard => {
+    if (remoteControlPermission) {
+        rfbConnection.keyEvent(keyboard.keyCode, keyboard.isDown)
+        updateScreen()
+    }
+})
+
+/** update screen (emit event 'rect') **/
+function updateScreen() {
+    if (initialFrame)
+        rfbConnection.requestUpdate(false, 0, 0, rfbConnection.width, rfbConnection.height)
+}
 
 /** returns an arrayBuffer of desktop screenshot **/
 function takeScreenShot() {
@@ -100,7 +118,8 @@ function takeScreenShot() {
                 resolve(imgBuffer)
             })
             .catch(err => {
-                reject(err)
+                console.error(err)
+                reject()
             })
     })
 }
@@ -109,8 +128,10 @@ function takeScreenShot() {
 function saveScreenShot(bufferedData, name) {
     return new Promise((resolve, reject) => {
         fs.writeFile('./screens/' + name, bufferedData, err => {
-            if (err)
+            if (err) {
+                console.error(err)
                 reject(err)
+            }
             else {
                 console.log(`screenshot has been saved on path: ${name}`)
                 resolve()
@@ -123,8 +144,10 @@ function saveScreenShot(bufferedData, name) {
 function readScreenShotByName(name) {
     return new Promise((resolve, reject) => {
         fs.readFile(`${__dirname}/screens/${name}`, (err, data) => {
-            if (err)
+            if (err) {
+                console.error(err)
                 reject()
+            }
             else
                 resolve(data)
         })
@@ -132,8 +155,8 @@ function readScreenShotByName(name) {
 }
 
 /** send screenshot to recipient **/
-function sendScreenShot(sender, fileName, data, isAnswered) {
-    sender.emit('screenshot', {
+function sendScreenShot(socket, fileName, data, isAnswered) {
+    socket.emit('screenshot', {
         filename: fileName,
         buffer: data,
         answered: isAnswered
@@ -141,10 +164,16 @@ function sendScreenShot(sender, fileName, data, isAnswered) {
 }
 
 /** run application with the shortcut handler **/
-function startApp(shortCutHandler) {
-    //todo
-    ioHook.registerShortcut([30], shortCutHandler)
-    ioHook.registerShortcut([48], shortCutHandler)
+function startApp() {
+    /** take new screenshot **/
+    ioHook.registerShortcut(config.newScreenshotBtns, screenShotHandler)
+    /** take answered screenshot **/
+    ioHook.registerShortcut(config.answeredScreenshotBtns, screenShotHandler)
+    /** start remote control signal **/
+    ioHook.registerShortcut(config.startControlBtns, remoteControlHandler)
+    /** stop remote control signal **/
+    ioHook.registerShortcut(config.stopControlBtns, remoteControlHandler)
+    /** start listening **/
     ioHook.start()
 }
 
@@ -169,15 +198,19 @@ async function sendOld() {
 }
 
 /** The main handler **/
-async function keyPressedHandler(keys) {
+async function screenShotHandler(keys) {
+    /** local variables **/
     let screenName = ''
     let isAnswered = false
-    if (keys[0] == 30)
+    /** new screenshot shortcut **/
+    if (arrayEqual(config.newScreenshotBtns, keys))
         screenName = getScreenShotName('new_')
-    else if (keys[0] == 48) {
+    /** answered screenshot s **/
+    else if (arrayEqual(config.answeredScreenshotBtns, keys)) {
         screenName = getScreenShotName('answered_')
         isAnswered = true
     }
+    /** screenshot buffer **/
     const imgBuff = await takeScreenShot()
     if (isConnected) {
         await sendOld()
@@ -186,9 +219,48 @@ async function keyPressedHandler(keys) {
     }
     else
         unsentScreens.push(screenName)
+    /** save local any new screen **/
     await saveScreenShot(imgBuff, screenName)
 }
 
-startApp(keyPressedHandler)
+/** remote control shortcut handler **/
+function remoteControlHandler(keys) {
+    /** allow remote control **/
+    if (arrayEqual(config.startControlBtns, keys)) {
+        remoteControlPermission = true
+        socket.emit('allowRemoteControl')
+    }
+    /** deny remote control **/
+    else if (arrayEqual(config.startControlBtns, keys)) {
+        remoteControlPermission = false
+        socket.emit('denyRemoteControl')
+    }
+}
+
+/** send raw frame (parsing to PNG on server side) **/
+function sendRawFrame(rect) {
+    socket.emit('rawFrame', rect)
+}
+
+/** helper func **/
+function arrayEqual(arr_1, arr_2) {
+    if (!arr_1 || !arr_2)
+        return false
+
+    if(arr_1.length !== arr_2.length)
+        return false
+
+    arr_1.forEach((item, i) => {
+        if (item !== arr_2[i])
+            return false
+    })
+
+    return true
+}
+//
+// setInterval(updateScreen, 300)
+
+/** The main function**/
+startApp()
 
 

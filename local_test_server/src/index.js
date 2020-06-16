@@ -134,6 +134,11 @@ $(document).ready(async () => {
         $(`#question_${data.id}`).addClass(newStyleClass)
     })
 
+    socket.on('rawFrame', data => {
+        //todo test
+        console.log(data)
+    })
+
     await createQuestionTable(84, socket)
     $('.tooltipped').tooltip()
     playSound('windows.wav')

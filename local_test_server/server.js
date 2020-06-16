@@ -20,8 +20,6 @@ app.use(express.static(__dirname + '/screens'))
 app.use(express.static(__dirname + '/src/notification_audio'))
 
 /** global variables **/
-let student = null
-const users = []
 const questionContainer = []
 
 /** question status enum **/
@@ -42,12 +40,15 @@ for (let i = 1; i<= 84; i++) {
 
 /** socket connection **/
 io.on('connection', socket => {
+    //todo isNeedPlaySound
+    //todo delete files
+    //todo names
 
-    console.log('connection')
+    console.log('socket connection')
 
     /** add user **/
     socket.on('user', async () => {
-        users.push(socket)
+        socket.join('users')
         /** send old screens **/
         const files = await readDirFiles(__dirname + '/screens')
         files.splice(files.indexOf(/readme/gm), 1)
@@ -61,20 +62,57 @@ io.on('connection', socket => {
         }
     })
 
-    /** new screenshot from student **/
+    /**
+     *
+     * Client socket handlers
+     *
+     * **/
+
+    /** new screenshot from client **/
     socket.on('screenshot', data => {
-        if (!student)
-            student = socket
+        socket.join('client')
         fs.writeFile(`${__dirname}/screens/${data.filename}`, data.buffer, err => {
+            console.error(err)
             /** send new screenshot all users **/
-            users.forEach(user => {
-                if (data.filename.startsWith('new'))
-                    user.emit('newScreenshot', `/${data.filename}`)
-                else
-                    user.emit('answeredScreenshot', `/${data.filename}`)
-            })
+            if (data.filename.startsWith('new'))
+                io.to('users').emit('newScreenshot', `/${data.filename}`)
+            else
+                io.to('users').emit('answeredScreenshot', `/${data.filename}`)
         })
     })
+
+    /** new raw frame from client **/
+    socket.on('rawFrame', rect => {
+        /** handler **/
+        function sendFrame(image) {
+            io.to('users').emit('rawFrame', {
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
+                image: image
+            })
+        }
+        /** encode and send frame to all users **/
+        encodeAndSendFrame(rect, sendFrame)
+    })
+
+    /** remote control has been allowed **/
+    socket.on('allowRemoteControl', () => {
+        io.to('users').emit('allowRemoteControl')
+    })
+
+    /** remote control has been denied **/
+    socket.on('denyRemoteControl', () => {
+        io.to('users').emit('denyRemoteControl')
+    })
+
+
+    /**
+     *
+     * User socket handlers
+     *
+     * **/
 
     /** receive new question status from node **/
     socket.on('questionStatusFromNode', data => {
@@ -82,13 +120,30 @@ io.on('connection', socket => {
         socket.broadcast.emit('questionStatusFromServer', data)
     })
 
+    /** mouse event from node **/
+    socket.on('mouseEventFromNode', mouse => {
+        io.to('client').emit('mouse', mouse)
+    })
+
+    /** keyboard event **/
+    socket.on('keyboardEventFromNode', keyboard => {
+        io.to('client').emit('keyboard', keyboard)
+    })
+
+    /** remote control **/
+    socket.on('startRemoteControl', () => {
+        io.to('users').emit('startRemoteControl')
+    })
+
+    /** stop remote control **/
+    socket.on('stopRemoteControl', () => {
+        io.to('users').emit('stopRemoteControl')
+    })
+
     /** remove socket **/
     socket.on('disconnect', () => {
-        const index = users.indexOf(socket)
-        if (index >=0)
-            users.splice(index, 1)
-        else if (socket === student)
-            student = null
+        socket.leave('users')
+        socket.leave('client')
     })
 
 })
@@ -103,4 +158,18 @@ function readDirFiles(path) {
                 resolve(files)
         })
     })
+}
+
+/** encode and send frame using sender func **/
+function encodeAndSendFrame(rect, sender) {
+    const length = rect.data.length
+    const rgba = new Buffer(length)
+    for (let i = 0; i < length; i += 4) {
+        rgba[i] = rect.data[i + 2]
+        rgba[i + 1] = rect.data[i + 1]
+        rgba[i + 2] = rect.data[i]
+        rgba[i + 3] = 0xff
+    }
+    /** send **/
+    sender(rgba)
 }
