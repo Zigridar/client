@@ -112,24 +112,24 @@ $(document).ready(async () => {
         $(`#question_${data.id}`).removeClass('grey darken-1 cyan lighten-3 yellow accent-4 red darken-1 green accent-4')
         let newStyleClass = ''
         if (data.status == QuestionStatus.none) {
-            fireNotification(`Вопрос ${data.id} отсутствует`, NotificationStatus.error)
+            fireNotification(`Вопрос ${data.id} отсутствует`, NotificationStatus.error, data.isNeedPlaySound)
             newStyleClass = 'grey darken-1'
         }
         else if (data.status == QuestionStatus.received) {
             newStyleClass = 'cyan lighten-3'
-            fireNotification(`Вопрос ${data.id} получен`, NotificationStatus.info)
+            fireNotification(`Вопрос ${data.id} получен`, NotificationStatus.info, data.isNeedPlaySound)
         }
         else if (data.status == QuestionStatus.resolving) {
             newStyleClass = 'yellow accent-4'
-            fireNotification(`Вопрос ${data.id} решается`, NotificationStatus.warning)
+            fireNotification(`Вопрос ${data.id} решается`, NotificationStatus.warning, data.isNeedPlaySound)
         }
         else if (data.status == QuestionStatus.suspended) {
             newStyleClass = 'red darken-1'
-            fireNotification(`Вопрос ${data.id} отложен`, NotificationStatus.error)
+            fireNotification(`Вопрос ${data.id} отложен`, NotificationStatus.error, data.isNeedPlaySound)
         }
         else if (data.status == QuestionStatus.done) {
             newStyleClass = 'green accent-4'
-            fireNotification(`Вопрос ${data.id} решен`, NotificationStatus.success)
+            fireNotification(`Вопрос ${data.id} решен`, NotificationStatus.success, data.isNeedPlaySound)
         }
         $(`#question_${data.id}`).addClass(newStyleClass)
     })
@@ -173,7 +173,7 @@ function addOldScreen(name) {
 }
 
 /** fire notification **/ //todo sound
-function fireNotification(text, notificationStatus) {
+function fireNotification(text, notificationStatus, isNeedPlaySound) {
     Swal.fire({
         title: text,
         type: notificationStatus,
@@ -183,7 +183,8 @@ function fireNotification(text, notificationStatus) {
         showConfirmButton: false,
         background: '#cbf7f4'
     });
-    playSound('notification.wav')
+    if (isNeedPlaySound)
+        playSound('notification.wav')
 }
 /** play sound **/
 function playSound(url) {
@@ -247,7 +248,8 @@ async function createQuestionTable(count, socket) {
 function broadCastQuestionStatus(socket, questionId, questionStatus) {
     socket.emit('questionStatusFromNode', {
         id: questionId,
-        status: questionStatus
+        status: questionStatus,
+        isNeedPlaySound: true
     })
 }
 

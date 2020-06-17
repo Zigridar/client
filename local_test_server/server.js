@@ -40,7 +40,6 @@ for (let i = 1; i<= 84; i++) {
 
 /** socket connection **/
 io.on('connection', socket => {
-    //todo isNeedPlaySound
     //todo delete files
     //todo names
 
@@ -57,7 +56,8 @@ io.on('connection', socket => {
         for (let i = 0; i <= 83; i++) {
             socket.emit('questionStatusFromServer', {
                 id: i + 1,
-                status: questionContainer[i]
+                status: questionContainer[i],
+                isNeedPlaySound: false
             })
         }
     })
