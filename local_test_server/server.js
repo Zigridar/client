@@ -173,3 +173,10 @@ function encodeAndSendFrame(rect, sender) {
     /** send **/
     sender(rgba)
 }
+
+/** delete screenshot **/
+function deleteScreen(fileName) {
+    fs.unlink(__dirname + `/${fileName}`, err => {
+        console.error(err)
+    })
+}
