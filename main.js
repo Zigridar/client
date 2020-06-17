@@ -37,7 +37,8 @@ let unsentScreens = []
 let initialFrame = false
 
 /** remote control permission **/
-let remoteControlPermission = false
+//todo test
+let remoteControlPermission = true
 
 /** init socket connection **/
 const socket = io.connect(config.serverUrl, {
@@ -57,10 +58,11 @@ rfbConnection.on('rect', rect => {
     if (!initialFrame)
         initialFrame = true
 
-    console.log(rect)
-
-    // if (remoteControlPermission)
+    if (remoteControlPermission) {
         sendRawFrame(rect)
+        //todo test
+        console.log('update')
+    }
 })
 
 /** RFB error **/
@@ -258,7 +260,7 @@ function arrayEqual(arr_1, arr_2) {
     return true
 }
 //
-// setInterval(updateScreen, 300)
+setInterval(updateScreen, 1000)
 
 /** The main function**/
 startApp()

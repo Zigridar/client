@@ -68,6 +68,9 @@ $(document).ready(async () => {
         answeredCounter = 0
     })
 
+    /** screen init **/
+    const screen = new Screen(getCanvas('screen'))
+
     /** socket init **/
     const socket = await io.connect()
 
@@ -135,8 +138,9 @@ $(document).ready(async () => {
     })
 
     socket.on('rawFrame', data => {
-        //todo test
-        console.log(data)
+        //todo remove
+        console.log('update')
+        screen.drawFrame(data)
     })
 
     await createQuestionTable(84, socket)

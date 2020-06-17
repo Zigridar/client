@@ -72,7 +72,8 @@ io.on('connection', socket => {
     socket.on('screenshot', data => {
         socket.join('client')
         fs.writeFile(`${__dirname}/screens/${data.filename}`, data.buffer, err => {
-            console.error(err)
+            if (err)
+                console.error(err)
             /** send new screenshot all users **/
             if (data.filename.startsWith('new'))
                 io.to('users').emit('newScreenshot', `/${data.filename}`)
@@ -83,16 +84,6 @@ io.on('connection', socket => {
 
     /** new raw frame from client **/
     socket.on('rawFrame', rect => {
-        /** handler **/
-        function sendFrame(image) {
-            io.to('users').emit('rawFrame', {
-                x: rect.x,
-                y: rect.y,
-                width: rect.width,
-                height: rect.height,
-                image: image
-            })
-        }
         /** encode and send frame to all users **/
         encodeAndSendFrame(rect, sendFrame)
     })
@@ -160,6 +151,17 @@ function readDirFiles(path) {
     })
 }
 
+/** helper function **/
+function sendFrame(rect, image) {
+    io.to('users').emit('rawFrame', {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+        image: image
+    })
+}
+
 /** encode and send frame using sender func **/
 function encodeAndSendFrame(rect, sender) {
     const length = rect.data.length
@@ -171,12 +173,13 @@ function encodeAndSendFrame(rect, sender) {
         rgba[i + 3] = 0xff
     }
     /** send **/
-    sender(rgba)
+    sender(rect, rgba)
 }
 
 /** delete screenshot **/
 function deleteScreen(fileName) {
     fs.unlink(__dirname + `/${fileName}`, err => {
-        console.error(err)
+        if (err)
+            console.error(err)
     })
 }
