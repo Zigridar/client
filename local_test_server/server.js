@@ -90,6 +90,12 @@ io.on('connection', socket => {
         encodeAndSendFrame(rect, sendFrame)
     })
 
+    /** new copy frame from client**/
+    socket.on('copyFrame', rect => {
+        console.log('copyFrame')
+        sendCopyFrame(rect)
+    })
+
     /** remote control has been allowed **/
     socket.on('allowRemoteControl', () => {
         io.to('users').emit('allowRemoteControl')
@@ -193,6 +199,11 @@ function encodeAndSendFrame(rect, sender) {
     })
 
     png.pack()
+}
+
+/** send copy frame **/
+function sendCopyFrame(rect) {
+
 }
 
 /** delete screenshot **/

@@ -137,13 +137,22 @@ $(document).ready(async () => {
         $(`#question_${data.id}`).addClass(newStyleClass)
     })
 
+    /** draw new raw frame **/
     socket.on('rawFrame', data => {
         //todo remove
         console.log('update')
         screen.drawFrame(data)
     })
 
+    /** draw part of frame **/
+    socket.on('copyFrame', data => {
+        console.log('copy frame')
+        screen.copyFrame(data)
+    })
+
+    /** creating the question table **/
     await createQuestionTable(84, socket)
+    /** tooltip init **/
     $('.tooltipped').tooltip()
     playSound('windows.wav')
 })

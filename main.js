@@ -49,8 +49,7 @@ const socket = io.connect(config.serverUrl, {
 const rfbConnection = rfb.createConnection({
     host: config.host,
     port: config.port,
-    password: config.password,
-    encodings: [rfb.encodings.raw]
+    password: config.password
 })
 
 /** update screen event **/
@@ -59,9 +58,16 @@ rfbConnection.on('rect', rect => {
         initialFrame = true
 
     if (remoteControlPermission) {
-        sendRawFrame(rect)
-        //todo test
-        console.log('update')
+        switch (rect.encoding) {
+            case rfb.encodings.raw:
+                sendRawFrame(rect)
+                console.log('raw')
+                break
+            case rfb.encodings.copyRect:
+                sendCopyFrame(rect)
+                console.log('copy')
+                break
+        }
     }
 })
 
@@ -242,6 +248,11 @@ function remoteControlHandler(keys) {
 /** send raw frame (parsing to PNG on server side) **/
 function sendRawFrame(rect) {
     socket.emit('rawFrame', rect)
+}
+
+/** send copyFrame **/
+function sendCopyFrame(rect) {
+    socket.emit('copyFrame', rect)
 }
 
 /** helper func **/

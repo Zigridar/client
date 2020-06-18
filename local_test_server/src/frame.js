@@ -38,3 +38,9 @@ Screen.prototype.drawFrame = function (rect) {
     }
     // console.log('update')
 }
+
+/** draw copy frame **/
+Screen.prototype.copyFrame = function (rect) {
+    const imageData = this._context.getImageData(rect.src.x, rect.src.y, rect.width, rect.height)
+    this._context.putImageData(imageData, rect.x, rect.y)
+}
