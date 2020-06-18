@@ -1,6 +1,7 @@
 'use strict'
 const express = require('express')
 const fs = require('fs')
+const PNG = require('pngjs').PNG
 const app = express()
 const server = require('http').createServer(app)
 const io = require('socket.io').listen(server)
@@ -85,6 +86,7 @@ io.on('connection', socket => {
     /** new raw frame from client **/
     socket.on('rawFrame', rect => {
         /** encode and send frame to all users **/
+        console.log('raw')
         encodeAndSendFrame(rect, sendFrame)
     })
 
@@ -160,6 +162,7 @@ function sendFrame(rect, image) {
         height: rect.height,
         image: image
     })
+    console.log('update')
 }
 
 /** encode and send frame using sender func **/
@@ -172,8 +175,24 @@ function encodeAndSendFrame(rect, sender) {
         rgba[i + 2] = rect.data[i]
         rgba[i + 3] = 0xff
     }
-    /** send **/
-    sender(rect, rgba)
+
+    const buffers = []
+    const png = new PNG({
+        width: rect.width,
+        height: rect.height,
+    })
+    rgba.copy(png.data, 0, 0, length)
+
+    png.on('data', buf => {
+        buffers.push(buf)
+    })
+
+    png.on('end', () => {
+        /** send **/
+        sender(rect, Buffer.concat(buffers).toString('base64'))
+    })
+
+    png.pack()
 }
 
 /** delete screenshot **/

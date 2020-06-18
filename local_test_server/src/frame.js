@@ -5,18 +5,6 @@ function getCanvas(id) {
     return document.getElementById(id)
 }
 
-let arr = []
-
-function setup () {
-    createCanvas(1378, 766)
-}
-
-function draw() {
-    loadPixels()
-    pixels = arr
-    updatePixels()
-}
-
 /** Frame constructor **/
 function Screen(canvas) {
     this._canvas = canvas
@@ -32,12 +20,21 @@ function Screen(canvas) {
 
 /** draw frame **/
 Screen.prototype.drawFrame = function (rect) {
-    arr = rect.image
-    // this._canvas.width = rect.width
-    // this._canvas.height = rect.height
-    // console.log(rect)
+    this._canvas.width = rect.width
+    this._canvas.height = rect.height
+    // const image = document.createElement('img');
+    // image.src = 'data:image/png;base64,' + btoa(String.fromCharCode.apply(null, rect.image))
     // const imgData = this._context.createImageData(rect.width, rect.height)
     // imgData.data.set(new Uint8Array(rect.image))
     // this._context.putImageData(imgData, rect.x, rect.y)
-    console.log('update')
+    const self = this
+    const img = new Image()
+    img.width = rect.width
+    img.height = rect.height
+    console.log(rect.image)
+    img.src = 'data:image/png;base64,' + rect.image;
+    img.onload = function() {
+        self._context.drawImage(img, rect.x, rect.y, rect.width, rect.height)
+    }
+    // console.log('update')
 }
