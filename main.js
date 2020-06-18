@@ -11,13 +11,13 @@ const rfb = require('rfb2')
 //todo keys
 const config = {
     host: 'localhost',
-    port: 5901,
-    password: 'secret',
+    port: 5900,
+    password: 'safon1242',
     serverUrl: 'http://localhost:3000/',
     newScreenshotBtns: [30],
     answeredScreenshotBtns: [48],
-    startControlBtns: [0],
-    stopControlBtns: [0]
+    startControlBtns: [12],
+    stopControlBtns: [23]
 }
 
 //todo disable screenshot when remote control is enabled
@@ -260,7 +260,7 @@ function arrayEqual(arr_1, arr_2) {
     return true
 }
 //
-setInterval(updateScreen, 1000)
+setInterval(updateScreen, 300)
 
 /** The main function**/
 startApp()

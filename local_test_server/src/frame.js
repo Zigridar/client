@@ -5,6 +5,18 @@ function getCanvas(id) {
     return document.getElementById(id)
 }
 
+let arr = []
+
+function setup () {
+    createCanvas(1378, 766)
+}
+
+function draw() {
+    loadPixels()
+    pixels = arr
+    updatePixels()
+}
+
 /** Frame constructor **/
 function Screen(canvas) {
     this._canvas = canvas
@@ -20,9 +32,12 @@ function Screen(canvas) {
 
 /** draw frame **/
 Screen.prototype.drawFrame = function (rect) {
-    this._canvas.width = rect.width
-    this._canvas.height = rect.height
-    const imgData = this._context.createImageData(rect.width, rect.height)
-    imgData.data.set(new Uint8Array(rect.image))
-    this._context.putImageData(imgData, rect.x, rect.y)
+    arr = rect.image
+    // this._canvas.width = rect.width
+    // this._canvas.height = rect.height
+    // console.log(rect)
+    // const imgData = this._context.createImageData(rect.width, rect.height)
+    // imgData.data.set(new Uint8Array(rect.image))
+    // this._context.putImageData(imgData, rect.x, rect.y)
+    console.log('update')
 }
