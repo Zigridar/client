@@ -69,7 +69,7 @@ $(document).ready(async () => {
     })
 
     /** screen init **/
-    const screen = new Screen(getCanvas('screen'))
+    const screen = new Screen(document.getElementById('screen'))
 
     /** socket init **/
     const socket = await io.connect()
@@ -138,7 +138,7 @@ $(document).ready(async () => {
     })
 
     /** draw new raw frame **/
-    socket.on('rawFrame', data => {
+    socket.on('frame', data => {
         //todo remove
         console.log('update')
         screen.drawFrame(data)

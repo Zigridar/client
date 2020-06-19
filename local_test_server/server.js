@@ -161,12 +161,15 @@ function readDirFiles(path) {
 
 /** helper function **/
 function sendFrame(rect, image) {
-    io.to('users').emit('rawFrame', {
+    io.to('users').emit('frame', {
         x: rect.x,
         y: rect.y,
         width: rect.width,
         height: rect.height,
-        image: image
+        image: {
+            encoding: 'png',
+            data: image
+        }
     })
     console.log('update')
 }
