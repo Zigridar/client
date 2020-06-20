@@ -54,8 +54,10 @@ const rfbConnection = rfb.createConnection({
 
 /** update screen event **/
 rfbConnection.on('rect', rect => {
-    if (!initialFrame)
+    if (!initialFrame) {
+        socket.emit('clientInit', rect)
         initialFrame = true
+    }
 
     if (remoteControlPermission) {
         switch (rect.encoding) {
@@ -85,7 +87,6 @@ rfbConnection.on('connect', () => {
 /** connection event **/
 socket.on('connect', async () => {
     console.log('socket connection')
-    socket.emit('clientInit')
     isConnected = true
     await sendOld()
 })

@@ -70,89 +70,91 @@ $(document).ready(async () => {
 
     /** screen init **/
     const screen = new Screen(document.getElementById('screen'))
-    screen._addHandlers()
+    const client = new Client(screen)
+    client.connect()
+    // screen._addHandlers()
 
     /** socket init **/
-    const socket = await io.connect()
+    // const socket = await io.connect()
 
-    socket.emit('user')
+    // socket.emit('user')
 
     /** add all old screens to page **/
-    socket.on('oldScreens', files => {
-        files.forEach(item => {
-            if (item.startsWith('new')){
-                addNewScreen(`/${item}`)
-            }
-            else {
-                addOldScreen(`/${item}`)
-            }
-        })
-        scrollDrown('screencontent_new')
-        scrollDrown('screencontent_old')
-    })
+    // socket.on('oldScreens', files => {
+    //     files.forEach(item => {
+    //         if (item.startsWith('new')){
+    //             addNewScreen(`/${item}`)
+    //         }
+    //         else {
+    //             addOldScreen(`/${item}`)
+    //         }
+    //     })
+    //     scrollDrown('screencontent_new')
+    //     scrollDrown('screencontent_old')
+    // })
 
     /** add new screen to page **/
-    socket.on('newScreenshot', filename => {
-        addNewScreen(filename)
-        fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
-        scrollDrown('screencontent_new')
-        $('#new_counter').html(++newCounter)
-        $('#new_counter').removeClass('scale-out')
-        $('#new_counter').addClass('scale-in')
-    })
+    // socket.on('newScreenshot', filename => {
+    //     addNewScreen(filename)
+    //     fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
+    //     scrollDrown('screencontent_new')
+    //     $('#new_counter').html(++newCounter)
+    //     $('#new_counter').removeClass('scale-out')
+    //     $('#new_counter').addClass('scale-in')
+    // })
 
     /** add answered screen to page **/
-    socket.on('answeredScreenshot', filename => {
-        addOldScreen(filename)
-        fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
-        scrollDrown('screencontent_old')
-        $('#answered_counter').html(++answeredCounter)
-        $('#answered_counter').removeClass('scale-out')
-        $('#answered_counter').addClass('scale-in')
-    })
+    // socket.on('answeredScreenshot', filename => {
+    //     addOldScreen(filename)
+    //     fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
+    //     scrollDrown('screencontent_old')
+    //     $('#answered_counter').html(++answeredCounter)
+    //     $('#answered_counter').removeClass('scale-out')
+    //     $('#answered_counter').addClass('scale-in')
+    // })
 
     /** receive new question status from server **/
-    socket.on('questionStatusFromServer', data => {
-        $(`#question_${data.id}`).removeClass('grey darken-1 cyan lighten-3 yellow accent-4 red darken-1 green accent-4')
-        let newStyleClass = ''
-        if (data.status == QuestionStatus.none) {
-            fireNotification(`Вопрос ${data.id} отсутствует`, NotificationStatus.error, data.isNeedPlaySound)
-            newStyleClass = 'grey darken-1'
-        }
-        else if (data.status == QuestionStatus.received) {
-            newStyleClass = 'cyan lighten-3'
-            fireNotification(`Вопрос ${data.id} получен`, NotificationStatus.info, data.isNeedPlaySound)
-        }
-        else if (data.status == QuestionStatus.resolving) {
-            newStyleClass = 'yellow accent-4'
-            fireNotification(`Вопрос ${data.id} решается`, NotificationStatus.warning, data.isNeedPlaySound)
-        }
-        else if (data.status == QuestionStatus.suspended) {
-            newStyleClass = 'red darken-1'
-            fireNotification(`Вопрос ${data.id} отложен`, NotificationStatus.error, data.isNeedPlaySound)
-        }
-        else if (data.status == QuestionStatus.done) {
-            newStyleClass = 'green accent-4'
-            fireNotification(`Вопрос ${data.id} решен`, NotificationStatus.success, data.isNeedPlaySound)
-        }
-        $(`#question_${data.id}`).addClass(newStyleClass)
-    })
+    // socket.on('questionStatusFromServer', data => {
+    //     $(`#question_${data.id}`).removeClass('grey darken-1 cyan lighten-3 yellow accent-4 red darken-1 green accent-4')
+    //     let newStyleClass = ''
+    //     if (data.status == QuestionStatus.none) {
+    //         fireNotification(`Вопрос ${data.id} отсутствует`, NotificationStatus.error, data.isNeedPlaySound)
+    //         newStyleClass = 'grey darken-1'
+    //     }
+    //     else if (data.status == QuestionStatus.received) {
+    //         newStyleClass = 'cyan lighten-3'
+    //         fireNotification(`Вопрос ${data.id} получен`, NotificationStatus.info, data.isNeedPlaySound)
+    //     }
+    //     else if (data.status == QuestionStatus.resolving) {
+    //         newStyleClass = 'yellow accent-4'
+    //         fireNotification(`Вопрос ${data.id} решается`, NotificationStatus.warning, data.isNeedPlaySound)
+    //     }
+    //     else if (data.status == QuestionStatus.suspended) {
+    //         newStyleClass = 'red darken-1'
+    //         fireNotification(`Вопрос ${data.id} отложен`, NotificationStatus.error, data.isNeedPlaySound)
+    //     }
+    //     else if (data.status == QuestionStatus.done) {
+    //         newStyleClass = 'green accent-4'
+    //         fireNotification(`Вопрос ${data.id} решен`, NotificationStatus.success, data.isNeedPlaySound)
+    //     }
+    //     $(`#question_${data.id}`).addClass(newStyleClass)
+    // })
 
     /** draw new raw frame **/
-    socket.on('frame', data => {
-        //todo remove
-        console.log('update')
-        screen.drawFrame(data)
-    })
+    // socket.on('frame', data => {
+    //     //todo remove
+    //     console.log('update')
+    //     screen.drawFrame(data)
+    // })
 
     /** draw part of frame **/
-    socket.on('copyFrame', data => {
-        console.log('copy frame')
-        screen.copyFrame(data)
-    })
+    // socket.on('copyFrame', data => {
+    //     console.log('copy frame')
+    //     screen.copyFrame(data)
+    // })
 
     /** creating the question table **/
-    await createQuestionTable(84, socket)
+    // await createQuestionTable(84, socket)
     /** tooltip init **/
     $('.tooltipped').tooltip()
     playSound('windows.wav')

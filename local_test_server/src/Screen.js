@@ -126,8 +126,8 @@ Screen.prototype._addHandlers = function() {
 };
 
 Screen.prototype.init = function(width, height){
-    this._canvas.width = width;
-    this._canvas.height = height;
+    this._canvas.width = 1200;
+    this._canvas.height = 800;
     this._scale();
     this._addHandlers();
 }
