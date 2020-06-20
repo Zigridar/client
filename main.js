@@ -82,6 +82,7 @@ rfbConnection.on('error', err => {
 
 /** RFB connect event **/
 rfbConnection.on('connect', () => {
+    rfbConnection.autoUpdate = true
     console.log('RFB connection')
 })
 
@@ -116,7 +117,7 @@ socket.on('keyboard', keyboard => {
 
 /** update screen (emit event 'rect') **/
 function updateScreen() {
-    if (initialFrame)
+    if (!initialFrame)
         rfbConnection.requestUpdate(false, 0, 0, rfbConnection.width, rfbConnection.height)
 }
 
@@ -273,8 +274,6 @@ function arrayEqual(arr_1, arr_2) {
 
     return true
 }
-//
-setInterval(updateScreen, 300)
 
 /** The main function**/
 startApp()

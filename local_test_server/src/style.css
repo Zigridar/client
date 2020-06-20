@@ -44,3 +44,13 @@ img {
 ::-webkit-scrollbar-thumb:hover {
     background: #444;
 }
+
+#screen {
+  -webkit-transition: opacity 1s;
+  -moz-transition: opacity 1s;
+  transition: opacity 1s;
+  -webkit-transform-origin: 0 0;
+  -moz-transform-origin: 0 0;
+  transform-origin: 0 0;
+  cursor: none;
+}
