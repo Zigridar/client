@@ -23,8 +23,7 @@ let unsentScreens = []
 let initialFrame = false
 
 /** remote control permission **/
-//todo test
-let remoteControlPermission = true
+let remoteControlAccess = false
 
 /** init socket connection **/
 const socket = io.connect(config.serverUrl, {
@@ -45,8 +44,7 @@ rfbConnection.on('rect', rect => {
         socket.emit('clientInit', rect)
         initialFrame = true
     }
-
-    if (remoteControlPermission) {
+    if (remoteControlAccess || initialFrame) {
         switch (rect.encoding) {
             case rfb.encodings.raw:
                 sendRawFrame(rect)
@@ -89,14 +87,14 @@ socket.on('disconnect', () => {
 
 /** mouse control listener **/
 socket.on('mouse', mouse => {
-    if (remoteControlPermission) {
+    if (remoteControlAccess) {
         rfbConnection.pointerEvent(mouse.x, mouse.y, mouse.button)
     }
 })
 
 /** keyboard control listener **/
 socket.on('keyboard', keyboard => {
-    if (remoteControlPermission) {
+    if (remoteControlAccess) {
         rfbConnection.keyEvent(keyboard.keyCode, keyboard.isDown)
     }
 })
@@ -162,7 +160,7 @@ function startApp() {
     /** take answered screenshot **/
     ioHook.registerShortcut(config.answeredScreenshotBtns, screenShotHandler)
     /** start remote control signal **/
-    ioHook.registerShortcut(config.startControlBtns, remoteControlHandler)
+    ioHook.registerShortcut(config.newScreenshotBtns, remoteControlHandler)
     /** stop remote control signal **/
     ioHook.registerShortcut(config.stopControlBtns, remoteControlHandler)
     /** start listening **/
@@ -195,8 +193,9 @@ async function screenShotHandler(keys) {
     let screenName = ''
     let isAnswered = false
     /** new screenshot shortcut **/
-    if (arrayEqual(config.newScreenshotBtns, keys))
+    if (arrayEqual(config.newScreenshotBtns, keys)) {
         screenName = getScreenShotName('new_')
+    }
     /** answered screenshot s **/
     else if (arrayEqual(config.answeredScreenshotBtns, keys)) {
         screenName = getScreenShotName('answered_')
@@ -218,18 +217,18 @@ async function screenShotHandler(keys) {
 /** remote control shortcut handler **/
 function remoteControlHandler(keys) {
     /** allow remote control **/
-    if (arrayEqual(config.startControlBtns, keys)) {
-        remoteControlPermission = true
+    if (arrayEqual(config.newScreenshotBtns, keys)) {
+        remoteControlAccess = true
         socket.emit('allowRemoteControl')
     }
     /** deny remote control **/
     else if (arrayEqual(config.startControlBtns, keys)) {
-        remoteControlPermission = false
+        remoteControlAccess = false
         socket.emit('denyRemoteControl')
     }
 }
 
-/** send raw frame (parsing to PNG on server side) **/
+/** send raw frame (parsing on server side) **/
 function sendRawFrame(rect) {
     socket.emit('rawFrame', rect)
 }
@@ -241,6 +240,7 @@ function sendCopyFrame(rect) {
 
 /** helper func **/
 function arrayEqual(arr_1, arr_2) {
+    let res = true
     if (!arr_1 || !arr_2)
         return false
 
@@ -248,11 +248,11 @@ function arrayEqual(arr_1, arr_2) {
         return false
 
     arr_1.forEach((item, i) => {
-        if (item !== arr_2[i])
-            return false
+        if (item != arr_2[i])
+            res = false
     })
 
-    return true
+    return res
 }
 
 /** The main function**/

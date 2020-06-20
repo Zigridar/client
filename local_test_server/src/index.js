@@ -51,6 +51,10 @@ Object.freeze(NotificationStatus)
 let newCounter = 0
 let answeredCounter = 0
 
+/** control access **/
+let controlAccess = false
+let remoteAccess = false
+
 /** page init **/
 $(document).ready(async () => {
     /** gallery init **/
@@ -140,8 +144,6 @@ $(document).ready(async () => {
 
     /** init frame **/
     socket.on('initFrame', rect => {
-        $('#screen').css('display', 'block')
-        $('#page-content').css('display', 'none')
         screen.init(rect.width, rect.height)
 
         /** screen mouse handler **/
@@ -175,12 +177,33 @@ $(document).ready(async () => {
 
     /** allow remote control **/
     socket.on('allowRemoteControl', () => {
-        //todo
+        remoteAccess = true
+        controlBtnHandler(socket)
     })
 
     /** deny remote control **/
     socket.on('denyRemoteControl', () => {
-        //todo
+        remoteAccess = false
+        controlAccess = false
+        $('#page-content').css('display', 'block')
+        $('#screen').css('display', 'none')
+        $('#remote-controller').addClass('scale-out')
+        $('#remote-controller').removeClass('scale-in')
+        $('#remote-controller').removeClass('red accent-4')
+    })
+
+    /** other user has started remote control **/
+    socket.on('startRemoteControl', () => {
+        controlAccess = false
+        $('#remote-controller').addClass('scale-out')
+        $('#remote-controller').removeClass('scale-in')
+    })
+
+    /** other user has stoped remote control **/
+    socket.on('stopRemoteControl', () => {
+        if (remoteAccess) {
+            controlBtnHandler(socket)
+        }
     })
 
     //todo remote control button
@@ -306,4 +329,30 @@ function scrollDrown(id) {
     $(`#${id}`).animate({
         scrollTop: $(`#${id}`).prop("scrollHeight")
     }, 800)
+}
+
+/** control button handler **/
+function controlBtnHandler(socket) {
+    controlAccess = true
+    const controller = $('#remote-controller')
+    controller.off('click')
+    controller.removeClass('scale-out')
+    controller.addClass('scale-in')
+    /** start **/
+    controller.click(() => {
+        $('#page-content').css('display', 'none')
+        $('#screen').css('display', 'block')
+        socket.emit('startRemoteControl')
+        controller.addClass('red accent-4')
+        $('#control-icon').html('stop')
+        controller.off('click')
+        /** stop **/
+        controller.click(() => {
+            $('#page-content').css('display', 'block')
+            $('#screen').css('display', 'none')
+            socket.emit('stopRemoteControl')
+            controller.removeClass('red accent-4')
+            $('#control-icon').html('settings_remote')
+        })
+    })
 }

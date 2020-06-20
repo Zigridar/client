@@ -366,5 +366,9 @@
       34
     ]
   },
-  "format": "raw"
+  "format": "raw",
+  "formats": {
+    "png": "png",
+    "raw": "raw"
+  }
 }

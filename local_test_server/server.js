@@ -16,10 +16,10 @@ let client = []
 const format = config.format
 const questionContainer = []
 
-const Formats = {
-    png: 'png',
-    raw: 'raw'
-}
+/** remote init frame **/
+let initFrame = null
+/** control access **/
+let controlAccess = false
 
 /** main page **/
 app.get('/', (req, res) => {
@@ -64,6 +64,7 @@ io.on('connection', socket => {
     /** client init **/
     socket.on('clientInit', rect => {
         client.push(socket)
+        initFrame = rect
         users.forEach(user => {
             user.emit('initFrame', rect)
         })
@@ -89,6 +90,7 @@ io.on('connection', socket => {
     /** new raw frame from client **/
     socket.on('rawFrame', rect => {
         /** encode and send frame to all users **/
+        //todo remove
         console.log('raw')
         encodeAndSendFrame(rect, sendFrame)
     })
@@ -135,6 +137,11 @@ io.on('connection', socket => {
                 isNeedPlaySound: false
             })
         }
+        /** send init frame **/
+        if (initFrame)
+            socket.emit('initFrame', initFrame)
+        if (controlAccess)
+            socket.emit('allowRemoteControl')
     })
 
     /** receive new question status from node **/
@@ -162,16 +169,12 @@ io.on('connection', socket => {
 
     /** remote control **/
     socket.on('startRemoteControl', () => {
-        users.forEach(user => {
-            user.emit('startRemoteControl')
-        })
+        socket.broadcast.emit('startRemoteControl')
     })
 
     /** stop remote control **/
     socket.on('stopRemoteControl', () => {
-        users.forEach(user => {
-            user.emit('stopRemoteControl')
-        })
+        socket.broadcast.emit('stopRemoteControl')
     })
 
     /** remove socket **/
@@ -212,6 +215,7 @@ function sendFrame(rect, image, format) {
             }
         })
     })
+    //todo remove
     console.log('update')
 }
 
@@ -226,11 +230,11 @@ function encodeAndSendFrame(rect, sender) {
         rgba[i + 3] = 0xff
     }
 
-    if (format === Formats.raw) {
+    if (format === config.formats.raw) {
         sender(rect, rgba, format)
     }
 
-    if (format === Formats.png) {
+    if (format === config.formats.png) {
         const buffers = []
         const png = new PNG({
             width: rect.width,
