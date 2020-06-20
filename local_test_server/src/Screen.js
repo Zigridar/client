@@ -24,21 +24,17 @@ function Screen(canvas) {
 
 Screen.prototype.drawFrame = function(rect) {
     const image = rect.image;
-    const now = +new Date();
-    console.log('drawImage')
     switch(image.encoding) {
         case 'raw':
             var imageData = this._context.createImageData(rect.width, rect.height);
             imageData.data.set(new Uint8Array(image.data));
             this._context.putImageData(imageData, rect.x, rect.y);
-            const foo = +new Date();
-            const size = rect.width * rect.height;
             break;
 
         case 'png':
         case 'jpeg':
-            var img = new Image();
-            var self = this;
+            const img = new Image();
+            const self = this;
             img.width = rect.width;
             img.height = rect.height;
             img.src = 'data:image/' + image.encoding + ';base64,' + rect.image.data;
@@ -94,30 +90,25 @@ Screen.prototype._addHandlers = function() {
     this._canvas.addEventListener('mousedown', this._onmousedown = function(e) {
         state = 1;
         self._event.emit('mouseEvent', self._toScreenX(e.pageX) , self._toScreenY(e.pageY), state)
-        // console.log('mousedown')
         e.preventDefault();
     }, false);
     this._canvas.addEventListener('mouseup', this._onmouseup = function (e) {
         state = 0;
         self._event.emit('mouseEvent', self._toScreenX(e.pageX) , self._toScreenY(e.pageY), state)
-        // console.log('mouseup')
         e.preventDefault();
     }, false);
     this._canvas.addEventListener('mousemove', this._onmousemove = function (e) {
         self._event.emit('mouseEvent', self._toScreenX(e.pageX) , self._toScreenY(e.pageY), state)
-        // console.log('mousemove')
         e.preventDefault();
     });
 
     /* key events */
     document.addEventListener('keydown', this._onkeydown = function (e) {
         self._event.emit('keyEvent', e.keyCode, e.shiftKey, 1)
-        // console.log('keydown')
         e.preventDefault();
     }, false);
     document.addEventListener('keyup', this._onkeyup = function (e) {
         self._event.emit('keyEvent', e.keyCode, e.shiftKey, 0)
-        // console.log('keyup')
         e.preventDefault();
     }, false);
 
@@ -126,8 +117,8 @@ Screen.prototype._addHandlers = function() {
 };
 
 Screen.prototype.init = function(width, height){
-    this._canvas.width = 1200;
-    this._canvas.height = 800;
+    this._canvas.width = width;
+    this._canvas.height = height;
     this._scale();
     this._addHandlers();
 }
@@ -143,8 +134,4 @@ Screen.prototype.removeHandlers = function() {
     document.removeEventListener('keyup', this._onkeyup);
     window.removeEventListener('resize', this._scale)
     this._hasHandlers = false;
-};
-
-Screen.prototype.getCanvas = function() {
-    return this._canvas;
 };

@@ -80,8 +80,11 @@ io.on('connection', socket => {
      * **/
 
     /** client init **/
-    socket.on('clientInit', () => {
+    socket.on('clientInit', rect => {
         client.push(socket)
+        users.forEach(user => {
+            user.emit('initFrame', rect)
+        })
     })
 
     /** new screenshot from client **/
