@@ -52,6 +52,8 @@ const rfbConnection = rfb.createConnection({
     password: config.password
 })
 
+rfbConnection.autoUpdate = true
+
 /** update screen event **/
 rfbConnection.on('rect', rect => {
     if (!initialFrame) {
