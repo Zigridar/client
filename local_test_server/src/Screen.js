@@ -25,6 +25,7 @@ function Screen(canvas) {
 Screen.prototype.drawFrame = function(rect) {
     const image = rect.image;
     const now = +new Date();
+    console.log('drawImage')
     switch(image.encoding) {
         case 'raw':
             var imageData = this._context.createImageData(rect.width, rect.height);
@@ -51,6 +52,7 @@ Screen.prototype.drawFrame = function(rect) {
 };
 
 Screen.prototype.copyFrame = function(rect) {
+    console.log('copyFrame')
     const imageData = this._context.getImageData(rect.src.x, rect.src.y, rect.width, rect.height);
     this._context.putImageData(imageData, rect.x, rect.y)
 };
@@ -92,25 +94,30 @@ Screen.prototype._addHandlers = function() {
     this._canvas.addEventListener('mousedown', this._onmousedown = function(e) {
         state = 1;
         self._event.emit('mouseEvent', self._toScreenX(e.pageX) , self._toScreenY(e.pageY), state)
+        // console.log('mousedown')
         e.preventDefault();
     }, false);
     this._canvas.addEventListener('mouseup', this._onmouseup = function (e) {
         state = 0;
         self._event.emit('mouseEvent', self._toScreenX(e.pageX) , self._toScreenY(e.pageY), state)
+        // console.log('mouseup')
         e.preventDefault();
     }, false);
     this._canvas.addEventListener('mousemove', this._onmousemove = function (e) {
         self._event.emit('mouseEvent', self._toScreenX(e.pageX) , self._toScreenY(e.pageY), state)
+        // console.log('mousemove')
         e.preventDefault();
     });
 
     /* key events */
     document.addEventListener('keydown', this._onkeydown = function (e) {
         self._event.emit('keyEvent', e.keyCode, e.shiftKey, 1)
+        // console.log('keydown')
         e.preventDefault();
     }, false);
     document.addEventListener('keyup', this._onkeyup = function (e) {
         self._event.emit('keyEvent', e.keyCode, e.shiftKey, 0)
+        // console.log('keyup')
         e.preventDefault();
     }, false);
 

@@ -70,6 +70,7 @@ $(document).ready(async () => {
 
     /** screen init **/
     const screen = new Screen(document.getElementById('screen'))
+    screen._addHandlers()
 
     /** socket init **/
     const socket = await io.connect()

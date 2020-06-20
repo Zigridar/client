@@ -9,6 +9,16 @@ const PORT = 3000
 
 server.listen(PORT)
 
+/** global variables **/
+let users = []
+let client = []
+let format = 'raw'
+
+const Formats = {
+    png: 'png',
+    raw: 'raw'
+}
+
 /** main page **/
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/src/index.html')
@@ -48,7 +58,7 @@ io.on('connection', socket => {
 
     /** add user **/
     socket.on('user', async () => {
-        socket.join('users')
+        users.push(socket)
         /** send old screens **/
         const files = await readDirFiles(__dirname + '/screens')
         files.splice(files.indexOf(/readme/gm), 1)
@@ -69,17 +79,25 @@ io.on('connection', socket => {
      *
      * **/
 
+    /** client init **/
+    socket.on('clientInit', () => {
+        client.push(socket)
+    })
+
     /** new screenshot from client **/
     socket.on('screenshot', data => {
-        socket.join('client')
         fs.writeFile(`${__dirname}/screens/${data.filename}`, data.buffer, err => {
             if (err)
                 console.error(err)
             /** send new screenshot all users **/
             if (data.filename.startsWith('new'))
-                io.to('users').emit('newScreenshot', `/${data.filename}`)
+                users.forEach(user => {
+                    user.emit('newScreenshot', `/${data.filename}`)
+                })
             else
-                io.to('users').emit('answeredScreenshot', `/${data.filename}`)
+                users.forEach(user => {
+                    user.emit('answeredScreenshot', `/${data.filename}`)
+                })
         })
     })
 
@@ -98,12 +116,16 @@ io.on('connection', socket => {
 
     /** remote control has been allowed **/
     socket.on('allowRemoteControl', () => {
-        io.to('users').emit('allowRemoteControl')
+        users.forEach(user => {
+            user.emit('allowRemoteControl')
+        })
     })
 
     /** remote control has been denied **/
     socket.on('denyRemoteControl', () => {
-        io.to('users').emit('denyRemoteControl')
+        users.forEach(user => {
+            user.emit('denyRemoteControl')
+        })
     })
 
 
@@ -121,28 +143,40 @@ io.on('connection', socket => {
 
     /** mouse event from node **/
     socket.on('mouseEventFromNode', mouse => {
-        io.to('client').emit('mouse', mouse)
+        client.forEach(cl => {
+            cl.emit('mouse', mouse)
+        })
     })
 
     /** keyboard event **/
     socket.on('keyboardEventFromNode', keyboard => {
-        io.to('client').emit('keyboard', keyboard)
+        client.forEach(cl => {
+            cl.emit('keyboard', keyboard)
+        })
     })
 
     /** remote control **/
     socket.on('startRemoteControl', () => {
-        io.to('users').emit('startRemoteControl')
+        users.forEach(user => {
+            user.emit('startRemoteControl')
+        })
     })
 
     /** stop remote control **/
     socket.on('stopRemoteControl', () => {
-        io.to('users').emit('stopRemoteControl')
+        users.forEach(user => {
+            user.emit('stopRemoteControl')
+        })
     })
 
     /** remove socket **/
     socket.on('disconnect', () => {
-        socket.leave('users')
-        socket.leave('client')
+        const clientIndex = client.indexOf(socket)
+        const userIndex = users.indexOf(socket)
+        if (clientIndex > -1)
+            client.splice(clientIndex)
+        if (userIndex > -1)
+            users.splice(userIndex, 1)
     })
 
 })
@@ -160,16 +194,18 @@ function readDirFiles(path) {
 }
 
 /** helper function **/
-function sendFrame(rect, image) {
-    io.to('users').emit('frame', {
-        x: rect.x,
-        y: rect.y,
-        width: rect.width,
-        height: rect.height,
-        image: {
-            encoding: 'png',
-            data: image
-        }
+function sendFrame(rect, image, format) {
+    users.forEach(user => {
+        user.emit('frame', {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+            image: {
+                encoding: format,
+                data: image
+            }
+        })
     })
     console.log('update')
 }
@@ -185,28 +221,36 @@ function encodeAndSendFrame(rect, sender) {
         rgba[i + 3] = 0xff
     }
 
-    const buffers = []
-    const png = new PNG({
-        width: rect.width,
-        height: rect.height,
-    })
-    rgba.copy(png.data, 0, 0, length)
+    if (format === Formats.raw) {
+        sender(rect, rgba, format)
+    }
 
-    png.on('data', buf => {
-        buffers.push(buf)
-    })
+    if (format === Formats.png) {
+        const buffers = []
+        const png = new PNG({
+            width: rect.width,
+            height: rect.height,
+        })
+        rgba.copy(png.data, 0, 0, length)
 
-    png.on('end', () => {
-        /** send **/
-        sender(rect, Buffer.concat(buffers).toString('base64'))
-    })
+        png.on('data', buf => {
+            buffers.push(buf)
+        })
 
-    png.pack()
+        png.on('end', () => {
+            /** send **/
+            sender(rect, Buffer.concat(buffers).toString('base64'))
+        })
+
+        png.pack()
+    }
 }
 
 /** send copy frame **/
 function sendCopyFrame(rect) {
-
+    users.forEach(user => {
+        user.emit('copyFrame', rect)
+    })
 }
 
 /** delete screenshot **/

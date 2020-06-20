@@ -85,6 +85,7 @@ rfbConnection.on('connect', () => {
 /** connection event **/
 socket.on('connect', async () => {
     console.log('socket connection')
+    socket.emit('clientInit')
     isConnected = true
     await sendOld()
 })
