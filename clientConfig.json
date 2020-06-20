@@ -1,0 +1,10 @@
+{
+  "host": "localhost",
+  "port": 5900,
+  "password": "secret",
+  "serverUrl": "http://localhost:3000/",
+  "newScreenshotBtns": [30],
+  "answeredScreenshotBtns": [48],
+  "startControlBtns": [12],
+  "stopControlBtns": [23]
+}

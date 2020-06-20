@@ -6,21 +6,7 @@ const screenshot = require('screenshot-desktop')
 const fs = require('fs')
 const ioHook = require('iohook')
 const rfb = require('rfb2')
-
-//todo file
-//todo keys
-const config = {
-    host: 'localhost',
-    port: 5900,
-    password: 'safon1242',
-    serverUrl: 'http://localhost:3000/',
-    newScreenshotBtns: [30],
-    answeredScreenshotBtns: [48],
-    startControlBtns: [12],
-    stopControlBtns: [23]
-}
-
-//todo disable screenshot when remote control is enabled
+const config = require('./clientConfig')
 
 /**
  * global variables
@@ -64,10 +50,12 @@ rfbConnection.on('rect', rect => {
         switch (rect.encoding) {
             case rfb.encodings.raw:
                 sendRawFrame(rect)
+                //todo remove
                 console.log('raw')
                 break
             case rfb.encodings.copyRect:
                 sendCopyFrame(rect)
+                //todo remove
                 console.log('copy')
                 break
         }
@@ -103,7 +91,6 @@ socket.on('disconnect', () => {
 socket.on('mouse', mouse => {
     if (remoteControlPermission) {
         rfbConnection.pointerEvent(mouse.x, mouse.y, mouse.button)
-        updateScreen()
     }
 })
 
@@ -111,15 +98,8 @@ socket.on('mouse', mouse => {
 socket.on('keyboard', keyboard => {
     if (remoteControlPermission) {
         rfbConnection.keyEvent(keyboard.keyCode, keyboard.isDown)
-        updateScreen()
     }
 })
-
-/** update screen (emit event 'rect') **/
-function updateScreen() {
-    if (!initialFrame)
-        rfbConnection.requestUpdate(false, 0, 0, rfbConnection.width, rfbConnection.height)
-}
 
 /** returns an arrayBuffer of desktop screenshot **/
 function takeScreenShot() {

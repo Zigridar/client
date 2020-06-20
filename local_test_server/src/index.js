@@ -74,6 +74,7 @@ $(document).ready(async () => {
     /** socket init **/
     const socket = await io.connect()
 
+    /** init server user **/
     socket.emit('user')
 
     /** add all old screens to page **/
@@ -139,14 +140,26 @@ $(document).ready(async () => {
 
     /** init frame **/
     socket.on('initFrame', rect => {
+        $('#screen').css('display', 'block')
+        $('#page-content').css('display', 'none')
         screen.init(rect.width, rect.height)
 
+        /** screen mouse handler **/
         screen.on('mouseEvent', (x, y, button) => {
-            console.log(x, y, button)
+            socket.emit('mouseEventFromNode', {
+                x: x,
+                y: y,
+                button: button
+            })
         })
 
+        /** screen keyboard handler **/
         screen.on('keyEvent', (code, shift, isDown) => {
-            console.log(code, shift, isDown)
+            socket.emit('keyboardEventFromNode', {
+                code: code,
+                shift: shift,
+                isDown: isDown
+            })
         })
     })
 
@@ -159,6 +172,18 @@ $(document).ready(async () => {
     socket.on('copyFrame', data => {
         screen.copyFrame(data)
     })
+
+    /** allow remote control **/
+    socket.on('allowRemoteControl', () => {
+        //todo
+    })
+
+    /** deny remote control **/
+    socket.on('denyRemoteControl', () => {
+        //todo
+    })
+
+    //todo remote control button
 
     /** creating the question table **/
     await createQuestionTable(84, socket)

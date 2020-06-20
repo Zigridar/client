@@ -48,6 +48,7 @@ Screen.prototype.drawFrame = function(rect) {
 };
 
 Screen.prototype.copyFrame = function(rect) {
+    //todo remove
     console.log('copyFrame')
     const imageData = this._context.getImageData(rect.src.x, rect.src.y, rect.width, rect.height);
     this._context.putImageData(imageData, rect.x, rect.y)
@@ -86,7 +87,6 @@ Screen.prototype._addHandlers = function() {
 
     /* mouse events */
     let state = 0;
-    this._hasMouseHandlers = true;
     this._canvas.addEventListener('mousedown', this._onmousedown = function(e) {
         state = 1;
         self._event.emit('mouseEvent', self._toScreenX(e.pageX) , self._toScreenY(e.pageY), state)

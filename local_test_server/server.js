@@ -3,6 +3,7 @@ const express = require('express')
 const fs = require('fs')
 const PNG = require('pngjs').PNG
 const app = express()
+const config = require('./serverConfig')
 const server = require('http').createServer(app)
 const io = require('socket.io').listen(server)
 const PORT = 3000
@@ -12,7 +13,8 @@ server.listen(PORT)
 /** global variables **/
 let users = []
 let client = []
-let format = 'raw'
+const format = config.format
+const questionContainer = []
 
 const Formats = {
     png: 'png',
@@ -29,9 +31,6 @@ app.use(express.static(__dirname + '/src'))
 /** screens **/
 app.use(express.static(__dirname + '/screens'))
 app.use(express.static(__dirname + '/src/notification_audio'))
-
-/** global variables **/
-const questionContainer = []
 
 /** question status enum **/
 const QuestionStatus = {
@@ -55,23 +54,6 @@ io.on('connection', socket => {
     //todo names
 
     console.log('socket connection')
-
-    /** add user **/
-    socket.on('user', async () => {
-        users.push(socket)
-        /** send old screens **/
-        const files = await readDirFiles(__dirname + '/screens')
-        files.splice(files.indexOf(/readme/gm), 1)
-        socket.emit('oldScreens', files)
-        /** send all question statuses **/
-        for (let i = 0; i <= 83; i++) {
-            socket.emit('questionStatusFromServer', {
-                id: i + 1,
-                status: questionContainer[i],
-                isNeedPlaySound: false
-            })
-        }
-    })
 
     /**
      *
@@ -138,6 +120,23 @@ io.on('connection', socket => {
      *
      * **/
 
+    /** add user **/
+    socket.on('user', async () => {
+        users.push(socket)
+        /** send old screens **/
+        const files = await readDirFiles(__dirname + '/screens')
+        files.splice(files.indexOf(/readme/gm), 1)
+        socket.emit('oldScreens', files)
+        /** send all question statuses **/
+        for (let i = 0; i <= 83; i++) {
+            socket.emit('questionStatusFromServer', {
+                id: i + 1,
+                status: questionContainer[i],
+                isNeedPlaySound: false
+            })
+        }
+    })
+
     /** receive new question status from node **/
     socket.on('questionStatusFromNode', data => {
         questionContainer[data.id - 1] = data.status
@@ -154,7 +153,10 @@ io.on('connection', socket => {
     /** keyboard event **/
     socket.on('keyboardEventFromNode', keyboard => {
         client.forEach(cl => {
-            cl.emit('keyboard', keyboard)
+            cl.emit('keyboard', {
+                isDown: keyboard.isDown,
+                keyCode: toRfbKeyCode(keyboard.code, keyboard.shift)
+            })
         })
     })
 
@@ -262,4 +264,13 @@ function deleteScreen(fileName) {
         if (err)
             console.error(err)
     })
+}
+
+/** convert to RFB key code **/
+function toRfbKeyCode(code, shift) {
+    const keys = config.keyMap[code.toString()];
+    if (keys) {
+        return keys[shift ? 1 : 0];
+    }
+    return null;
 }
