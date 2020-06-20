@@ -52,11 +52,10 @@ const rfbConnection = rfb.createConnection({
     password: config.password
 })
 
-rfbConnection.autoUpdate = true
-
 /** update screen event **/
 rfbConnection.on('rect', rect => {
     if (!initialFrame) {
+        rfbConnection.autoUpdate = true
         socket.emit('clientInit', rect)
         initialFrame = true
     }
