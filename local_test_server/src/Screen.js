@@ -73,7 +73,7 @@ Screen.prototype._toScreenX = function(pageX){
 }
 
 Screen.prototype._toScreenY = function(pageY){
-    return (pageY ) / this._scaleFactor - this._dy;
+    return (pageY ) / this._scaleFactor - this._dy - 100;
 }
 
 Screen.prototype._addHandlers = function() {

@@ -13,6 +13,10 @@ server.listen(PORT)
 /** global variables **/
 const format = config.format
 const questionContainer = []
+const currentController = {
+    socket: null,
+    isControlNow: false
+}
 
 /** remote init frame **/
 let initFrame = null
@@ -71,6 +75,11 @@ io.on('connection', socket => {
         socket.join(Rooms.client)
         initFrame = rect
         io.in(Rooms.users).emit('initFrame', rect)
+
+        /** remove socket **/
+        socket.on('disconnect', () => {
+            io.in(Rooms.users).emit('denyRemoteControl')
+        })
     })
 
     /** new screenshot from client **/
@@ -138,8 +147,18 @@ io.on('connection', socket => {
         if (initFrame)
             socket.emit('initFrame', initFrame)
         io.in(Rooms.client).emit('requestUpdate')
-        if (controlAccess)
+        if (controlAccess && !currentController.isControlNow)
             socket.emit('allowRemoteControl')
+
+        /** remove socket **/
+        socket.on('disconnect', () => {
+            if (currentController.isControlNow && currentController.socket == socket) {
+                currentController.isControlNow = false
+                currentController.socket = null
+                io.in(Rooms.users).emit('stopRemoteControl')
+                io.in(Rooms.users).emit('allowRemoteControl')
+            }
+        })
     })
 
     /** receive new question status from node **/
@@ -163,17 +182,17 @@ io.on('connection', socket => {
 
     /** remote control **/
     socket.on('startRemoteControl', () => {
+        currentController.socket = socket
+        currentController.isControlNow = true
         socket.broadcast.emit('startRemoteControl')
     })
 
     /** stop remote control **/
     socket.on('stopRemoteControl', () => {
+        currentController.socket = null
+        currentController.isControlNow = false
         socket.broadcast.emit('stopRemoteControl')
-    })
-
-    /** remove socket **/
-    socket.on('disconnect', () => {
-        io.in(Rooms.users).emit('denyRemoteControl')
+        io.in(Rooms.users).emit('allowRemoteControl')
     })
 
 })

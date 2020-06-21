@@ -79,7 +79,9 @@ $(document).ready(async () => {
     const screen = new Screen(document.getElementById('screen'))
 
     /** socket init **/
-    const socket = await io.connect()
+    const socket = await io.connect({
+        reconnect: true
+    })
 
     /** init server user **/
     socket.emit('user')
@@ -183,20 +185,26 @@ $(document).ready(async () => {
 
     /** allow remote control **/
     socket.on('allowRemoteControl', () => {
-        remoteAccess = true
-        controlBtnHandler(socket)
-        fireNotification('Рарешен удаленный доступ', NotificationStatus.warning, true)
+        if (!remoteAccess) {
+            controlAccess = true
+            remoteAccess = true
+            controlBtnHandler(socket)
+            fireNotification('Рарешен удаленный доступ', NotificationStatus.warning, true)
+        }
     })
 
     /** deny remote control **/
     socket.on('denyRemoteControl', () => {
-        remoteAccess = false
-        controlAccess = false
-        $('#page-content').css('display', 'block')
-        $('#screen').css('display', 'none')
-        $('#remote-controller').addClass('scale-out')
-        $('#remote-controller').removeClass('scale-in')
-        $('#remote-controller').removeClass('red accent-4')
+        if (remoteAccess) {
+            remoteAccess = false
+            controlAccess = false
+            $('#page-content').css('display', 'block')
+            $('#screen').css('display', 'none')
+            $('#remote-controller').addClass('scale-out')
+            $('#remote-controller').removeClass('scale-in')
+            $('#remote-controller').removeClass('red accent-4')
+            $('#remote-controller').off('click')
+        }
     })
 
     /** other user has started remote control **/
@@ -209,6 +217,7 @@ $(document).ready(async () => {
 
     /** other user has stoped remote control **/
     socket.on('stopRemoteControl', () => {
+        controlAccess = true
         if (remoteAccess) {
             controlBtnHandler(socket)
         }

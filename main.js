@@ -76,6 +76,11 @@ socket.on('connect', async () => {
     //todo remove
     console.log('socket connection')
     isConnected = true
+    if (remoteControlAccess) {
+        socket.emit('allowRemoteControl')
+        socket.emit('clientInit', initialRect)
+        updateScreen()
+    }
     await sendOld()
 })
 
@@ -101,15 +106,6 @@ socket.on('keyboard', keyboard => {
 
 /** request update listener **/
 socket.on('requestUpdate', updateScreen)
-
-/** send remote access after reconnection **/
-socket.on('reconnect', () => {
-    if (remoteControlAccess) {
-        socket.emit('allowRemoteControl')
-        socket.emit('clientInit', initialRect)
-        updateScreen()
-    }
-})
 
 /** returns an arrayBuffer of desktop screenshot **/
 function takeScreenShot() {
