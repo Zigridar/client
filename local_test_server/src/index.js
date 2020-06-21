@@ -55,6 +55,9 @@ let answeredCounter = 0
 let controlAccess = false
 let remoteAccess = false
 
+/** is init remote screen **/
+let isInit = false
+
 /** page init **/
 $(document).ready(async () => {
     /** gallery init **/
@@ -98,7 +101,7 @@ $(document).ready(async () => {
     /** add new screen to page **/
     socket.on('newScreenshot', filename => {
         addNewScreen(filename)
-        fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
+        fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info, true)
         scrollDrown('screencontent_new')
         $('#new_counter').html(++newCounter)
         $('#new_counter').removeClass('scale-out')
@@ -108,7 +111,7 @@ $(document).ready(async () => {
     /** add answered screen to page **/
     socket.on('answeredScreenshot', filename => {
         addOldScreen(filename)
-        fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
+        fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info, true)
         scrollDrown('screencontent_old')
         $('#answered_counter').html(++answeredCounter)
         $('#answered_counter').removeClass('scale-out')
@@ -144,25 +147,28 @@ $(document).ready(async () => {
 
     /** init frame **/
     socket.on('initFrame', rect => {
-        screen.init(rect.width, rect.height)
+        if (!isInit) {
+            isInit = true
+            screen.init(rect.width, rect.height)
 
-        /** screen mouse handler **/
-        screen.on('mouseEvent', (x, y, button) => {
-            socket.emit('mouseEventFromNode', {
-                x: x,
-                y: y,
-                button: button
+            /** screen mouse handler **/
+            screen.on('mouseEvent', (x, y, button) => {
+                socket.emit('mouseEventFromNode', {
+                    x: x,
+                    y: y,
+                    button: button
+                })
             })
-        })
 
-        /** screen keyboard handler **/
-        screen.on('keyEvent', (code, shift, isDown) => {
-            socket.emit('keyboardEventFromNode', {
-                code: code,
-                shift: shift,
-                isDown: isDown
+            /** screen keyboard handler **/
+            screen.on('keyEvent', (code, shift, isDown) => {
+                socket.emit('keyboardEventFromNode', {
+                    code: code,
+                    shift: shift,
+                    isDown: isDown
+                })
             })
-        })
+        }
     })
 
     /** draw new raw frame **/
@@ -179,6 +185,7 @@ $(document).ready(async () => {
     socket.on('allowRemoteControl', () => {
         remoteAccess = true
         controlBtnHandler(socket)
+        fireNotification('Рарешен удаленный доступ', NotificationStatus.warning, true)
     })
 
     /** deny remote control **/
@@ -197,6 +204,7 @@ $(document).ready(async () => {
         controlAccess = false
         $('#remote-controller').addClass('scale-out')
         $('#remote-controller').removeClass('scale-in')
+        fireNotification('Удаленное управление пользователем', NotificationStatus.info, true)
     })
 
     /** other user has stoped remote control **/
@@ -206,13 +214,10 @@ $(document).ready(async () => {
         }
     })
 
-    //todo remote control button
-
     /** creating the question table **/
     await createQuestionTable(84, socket)
     /** tooltip init **/
     $('.tooltipped').tooltip()
-    playSound('windows.wav')
 })
 
 /** add new screen to new screens **/
@@ -338,6 +343,7 @@ function controlBtnHandler(socket) {
     controller.off('click')
     controller.removeClass('scale-out')
     controller.addClass('scale-in')
+    $('#control-icon').html('settings_remote')
     /** start **/
     controller.click(() => {
         $('#page-content').css('display', 'none')
@@ -346,6 +352,7 @@ function controlBtnHandler(socket) {
         controller.addClass('red accent-4')
         $('#control-icon').html('stop')
         controller.off('click')
+        playSound('on.mp3')
         /** stop **/
         controller.click(() => {
             $('#page-content').css('display', 'block')
@@ -353,6 +360,10 @@ function controlBtnHandler(socket) {
             socket.emit('stopRemoteControl')
             controller.removeClass('red accent-4')
             $('#control-icon').html('settings_remote')
+            controller.off('click')
+            playSound('off.mp3')
+            /** recursive call **/
+            controlBtnHandler(socket)
         })
     })
 }

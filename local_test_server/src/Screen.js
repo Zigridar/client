@@ -26,7 +26,7 @@ Screen.prototype.drawFrame = function(rect) {
     const image = rect.image;
     switch(image.encoding) {
         case 'raw':
-            var imageData = this._context.createImageData(rect.width, rect.height);
+            const imageData = this._context.createImageData(rect.width, rect.height);
             imageData.data.set(new Uint8Array(image.data));
             this._context.putImageData(imageData, rect.x, rect.y);
             break;
@@ -48,8 +48,6 @@ Screen.prototype.drawFrame = function(rect) {
 };
 
 Screen.prototype.copyFrame = function(rect) {
-    //todo remove
-    console.log('copyFrame')
     const imageData = this._context.getImageData(rect.src.x, rect.src.y, rect.width, rect.height);
     this._context.putImageData(imageData, rect.x, rect.y)
 };

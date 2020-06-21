@@ -52,6 +52,7 @@ for (let i = 1; i<= 84; i++) {
 io.on('connection', socket => {
     //todo delete files
     //todo names
+    //todo room service
 
     console.log('socket connection')
 
@@ -103,6 +104,7 @@ io.on('connection', socket => {
 
     /** remote control has been allowed **/
     socket.on('allowRemoteControl', () => {
+        controlAccess = true
         users.forEach(user => {
             user.emit('allowRemoteControl')
         })
@@ -110,6 +112,7 @@ io.on('connection', socket => {
 
     /** remote control has been denied **/
     socket.on('denyRemoteControl', () => {
+        controlAccess = false
         users.forEach(user => {
             user.emit('denyRemoteControl')
         })
@@ -140,6 +143,9 @@ io.on('connection', socket => {
         /** send init frame **/
         if (initFrame)
             socket.emit('initFrame', initFrame)
+        client.forEach(cl => {
+            cl.emit('requestUpdate')
+        })
         if (controlAccess)
             socket.emit('allowRemoteControl')
     })
@@ -181,8 +187,10 @@ io.on('connection', socket => {
     socket.on('disconnect', () => {
         const clientIndex = client.indexOf(socket)
         const userIndex = users.indexOf(socket)
-        if (clientIndex > -1)
+        if (clientIndex > -1) {
             client.splice(clientIndex)
+            io.emit('denyRemoteControl')
+        }
         if (userIndex > -1)
             users.splice(userIndex, 1)
     })

@@ -21,6 +21,7 @@ let unsentScreens = []
 
 /** check initial rbc connection initial stream **/
 let initialFrame = false
+let initialRect = null
 
 /** remote control permission **/
 let remoteControlAccess = false
@@ -43,18 +44,15 @@ rfbConnection.on('rect', rect => {
         rfbConnection.autoUpdate = true
         socket.emit('clientInit', rect)
         initialFrame = true
+        initialRect = rect
     }
     if (remoteControlAccess || initialFrame) {
         switch (rect.encoding) {
             case rfb.encodings.raw:
                 sendRawFrame(rect)
-                //todo remove
-                console.log('raw')
                 break
             case rfb.encodings.copyRect:
                 sendCopyFrame(rect)
-                //todo remove
-                console.log('copy')
                 break
         }
     }
@@ -69,11 +67,13 @@ rfbConnection.on('error', err => {
 /** RFB connect event **/
 rfbConnection.on('connect', () => {
     rfbConnection.autoUpdate = true
+    //todo remove
     console.log('RFB connection')
 })
 
 /** connection event **/
 socket.on('connect', async () => {
+    //todo remove
     console.log('socket connection')
     isConnected = true
     await sendOld()
@@ -96,6 +96,17 @@ socket.on('mouse', mouse => {
 socket.on('keyboard', keyboard => {
     if (remoteControlAccess) {
         rfbConnection.keyEvent(keyboard.keyCode, keyboard.isDown)
+    }
+})
+
+/** request update listener **/
+socket.on('requestUpdate', updateScreen)
+
+/** send remote access after reconnection **/
+socket.on('reconnect', () => {
+    if (remoteControlAccess) {
+        socket.emit('allowRemoteControl')
+        socket.emit('clientInit', initialRect)
     }
 })
 
@@ -160,7 +171,7 @@ function startApp() {
     /** take answered screenshot **/
     ioHook.registerShortcut(config.answeredScreenshotBtns, screenShotHandler)
     /** start remote control signal **/
-    ioHook.registerShortcut(config.newScreenshotBtns, remoteControlHandler)
+    ioHook.registerShortcut(config.startControlBtns, remoteControlHandler)
     /** stop remote control signal **/
     ioHook.registerShortcut(config.stopControlBtns, remoteControlHandler)
     /** start listening **/
@@ -217,12 +228,12 @@ async function screenShotHandler(keys) {
 /** remote control shortcut handler **/
 function remoteControlHandler(keys) {
     /** allow remote control **/
-    if (arrayEqual(config.newScreenshotBtns, keys)) {
+    if (arrayEqual(config.startControlBtns, keys)) {
         remoteControlAccess = true
         socket.emit('allowRemoteControl')
     }
     /** deny remote control **/
-    else if (arrayEqual(config.startControlBtns, keys)) {
+    else if (arrayEqual(config.stopControlBtns, keys)) {
         remoteControlAccess = false
         socket.emit('denyRemoteControl')
     }
@@ -236,6 +247,11 @@ function sendRawFrame(rect) {
 /** send copyFrame **/
 function sendCopyFrame(rect) {
     socket.emit('copyFrame', rect)
+}
+
+/** helper func **/
+function updateScreen() {
+    rfbConnection.requestUpdate(false,0, 0, rfbConnection.width, rfbConnection.height)
 }
 
 /** helper func **/
