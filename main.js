@@ -107,6 +107,7 @@ socket.on('reconnect', () => {
     if (remoteControlAccess) {
         socket.emit('allowRemoteControl')
         socket.emit('clientInit', initialRect)
+        updateScreen()
     }
 })
 

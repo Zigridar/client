@@ -11,8 +11,6 @@ const PORT = 3000
 server.listen(PORT)
 
 /** global variables **/
-let users = []
-let client = []
 const format = config.format
 const questionContainer = []
 
@@ -43,6 +41,14 @@ const QuestionStatus = {
 /** freeze enum **/
 Object.freeze(QuestionStatus)
 
+/** room enum **/
+const Rooms = {
+    client: 'client',
+    users: 'users'
+}
+/** freeze enum **/
+Object.freeze(Rooms)
+
 /** init question container **/
 for (let i = 1; i<= 84; i++) {
     questionContainer.push(QuestionStatus.none)
@@ -50,9 +56,7 @@ for (let i = 1; i<= 84; i++) {
 
 /** socket connection **/
 io.on('connection', socket => {
-    //todo delete files
     //todo names
-    //todo room service
 
     console.log('socket connection')
 
@@ -64,11 +68,9 @@ io.on('connection', socket => {
 
     /** client init **/
     socket.on('clientInit', rect => {
-        client.push(socket)
+        socket.join(Rooms.client)
         initFrame = rect
-        users.forEach(user => {
-            user.emit('initFrame', rect)
-        })
+        io.in(Rooms.users).emit('initFrame', rect)
     })
 
     /** new screenshot from client **/
@@ -78,13 +80,9 @@ io.on('connection', socket => {
                 console.error(err)
             /** send new screenshot all users **/
             if (data.filename.startsWith('new'))
-                users.forEach(user => {
-                    user.emit('newScreenshot', `/${data.filename}`)
-                })
+                io.in(Rooms.users).emit('newScreenshot', `/${data.filename}`)
             else
-                users.forEach(user => {
-                    user.emit('answeredScreenshot', `/${data.filename}`)
-                })
+                io.in(Rooms.users).emit('answeredScreenshot', `/${data.filename}`)
         })
     })
 
@@ -105,17 +103,13 @@ io.on('connection', socket => {
     /** remote control has been allowed **/
     socket.on('allowRemoteControl', () => {
         controlAccess = true
-        users.forEach(user => {
-            user.emit('allowRemoteControl')
-        })
+        io.in(Rooms.users).emit('allowRemoteControl')
     })
 
     /** remote control has been denied **/
     socket.on('denyRemoteControl', () => {
         controlAccess = false
-        users.forEach(user => {
-            user.emit('denyRemoteControl')
-        })
+        io.in(Rooms.users).emit('denyRemoteControl')
     })
 
 
@@ -127,7 +121,7 @@ io.on('connection', socket => {
 
     /** add user **/
     socket.on('user', async () => {
-        users.push(socket)
+        socket.join(Rooms.users)
         /** send old screens **/
         const files = await readDirFiles(__dirname + '/screens')
         files.splice(files.indexOf(/readme/gm), 1)
@@ -143,9 +137,7 @@ io.on('connection', socket => {
         /** send init frame **/
         if (initFrame)
             socket.emit('initFrame', initFrame)
-        client.forEach(cl => {
-            cl.emit('requestUpdate')
-        })
+        io.in(Rooms.client).emit('requestUpdate')
         if (controlAccess)
             socket.emit('allowRemoteControl')
     })
@@ -158,18 +150,14 @@ io.on('connection', socket => {
 
     /** mouse event from node **/
     socket.on('mouseEventFromNode', mouse => {
-        client.forEach(cl => {
-            cl.emit('mouse', mouse)
-        })
+        io.in(Rooms.client).emit('mouse', mouse)
     })
 
     /** keyboard event **/
     socket.on('keyboardEventFromNode', keyboard => {
-        client.forEach(cl => {
-            cl.emit('keyboard', {
-                isDown: keyboard.isDown,
-                keyCode: toRfbKeyCode(keyboard.code, keyboard.shift)
-            })
+        io.in(Rooms.client).emit('keyboard', {
+            isDown: keyboard.isDown,
+            keyCode: toRfbKeyCode(keyboard.code, keyboard.shift)
         })
     })
 
@@ -185,14 +173,7 @@ io.on('connection', socket => {
 
     /** remove socket **/
     socket.on('disconnect', () => {
-        const clientIndex = client.indexOf(socket)
-        const userIndex = users.indexOf(socket)
-        if (clientIndex > -1) {
-            client.splice(clientIndex)
-            io.emit('denyRemoteControl')
-        }
-        if (userIndex > -1)
-            users.splice(userIndex, 1)
+        io.in(Rooms.users).emit('denyRemoteControl')
     })
 
 })
@@ -211,8 +192,7 @@ function readDirFiles(path) {
 
 /** helper function **/
 function sendFrame(rect, image, format) {
-    users.forEach(user => {
-        user.emit('frame', {
+    io.in(Rooms.users).emit('frame', {
             x: rect.x,
             y: rect.y,
             width: rect.width,
@@ -222,9 +202,6 @@ function sendFrame(rect, image, format) {
                 data: image
             }
         })
-    })
-    //todo remove
-    console.log('update')
 }
 
 /** encode and send frame using sender func **/
@@ -265,17 +242,7 @@ function encodeAndSendFrame(rect, sender) {
 
 /** send copy frame **/
 function sendCopyFrame(rect) {
-    users.forEach(user => {
-        user.emit('copyFrame', rect)
-    })
-}
-
-/** delete screenshot **/
-function deleteScreen(fileName) {
-    fs.unlink(__dirname + `/${fileName}`, err => {
-        if (err)
-            console.error(err)
-    })
+    io.in(Rooms.users).emit('copyFrame', rect)
 }
 
 /** convert to RFB key code **/
