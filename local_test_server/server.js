@@ -3,6 +3,9 @@ const express = require('express')
 const fs = require('fs')
 const PNG = require('pngjs').PNG
 const app = express()
+const parser = require('body-parser')
+const crypto = require('crypto')
+const cookie = require('cookie-parser')
 const config = require('./serverConfig')
 const server = require('http').createServer(app)
 const io = require('socket.io').listen(server)
@@ -23,9 +26,49 @@ let initFrame = null
 /** control access **/
 let controlAccess = false
 
-/** main page **/
+/** user container **/
+const authTokens = {};
+
+/** set body-parser to server **/
+app.use(parser.urlencoded({ extended: true }))
+
+/** set cookie-parser to server **/
+app.use(cookie())
+
+/** login page **/
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/src/index.html')
+    res.sendFile(__dirname + '/src/login.html')
+})
+
+/** check authorization **/
+app.post('/', (req, res) => {
+    const { login, password } = req.body
+    const hashedPassword = getHashedPassword(password)
+    /** find user **/
+    const user = config.users.find(user => user.login === login)
+    /** if user exists and password isn't wrong **/
+    if (user && hashedPassword === user.passHash) {
+        const authToken = generateAuthToken()
+        authTokens[authToken] = user
+        res.cookie('AuthToken', authToken)
+        res.redirect('/main')
+    }
+    else
+        res.redirect('/')
+})
+
+app.use((req, res, next) => {
+    const authToken = req.cookies['AuthToken']
+    req.user = authTokens[authToken]
+    next()
+});
+
+/** main page **/
+app.get('/main', (req, res) => {
+    if (req.user)
+        res.sendFile(__dirname + '/src/index.html')
+    else
+        res.redirect('/')
 })
 
 /** main script **/
@@ -270,5 +313,17 @@ function toRfbKeyCode(code, shift) {
     if (keys) {
         return keys[shift ? 1 : 0];
     }
-    return null;
+    return null
+}
+
+/** returns hash of the password **/
+function getHashedPassword(password) {
+    const sha256 = crypto.createHash('sha256')
+    const hash = sha256.update(password).digest('base64')
+    return hash
+}
+
+/** auth token for user session **/
+const generateAuthToken = () => {
+    return crypto.randomBytes(30).toString('hex')
 }

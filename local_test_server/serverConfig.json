@@ -370,5 +370,12 @@
   "formats": {
     "png": "png",
     "raw": "raw"
-  }
+  },
+  "users": [
+    {
+      "login": "cholakh",
+      "passHash": "yvd/CkeaxUBtQ6Wiv21KRQOSXkWX8ODjgpmfo77Andg=",
+      "name": "Seif"
+    }
+  ]
 }
