@@ -28,7 +28,10 @@ let remoteControlAccess = false
 
 /** init socket connection **/
 const socket = io.connect(config.serverUrl, {
-    reconnect: true
+    'forceNew': true,
+    transports: ['websocket'],
+    allowUpgrades: false,
+    pingTimeout: 30000
 })
 
 /** init RFB connection **/
@@ -85,8 +88,9 @@ socket.on('connect', async () => {
 })
 
 /** disconnect event **/
-socket.on('disconnect', () => {
+socket.on('disconnect', reason => {
     console.error('socket has been disconnected')
+    console.log(reason)
     isConnected = false
 })
 

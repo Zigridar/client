@@ -9,9 +9,8 @@ const cookie = require('cookie-parser')
 const config = require('./serverConfig')
 const server = require('http').createServer(app)
 const io = require('socket.io').listen(server)
-const PORT = 3000
 
-server.listen(PORT)
+server.listen(config.port)
 
 /** global variables **/
 const format = config.format
@@ -97,7 +96,7 @@ const Rooms = {
 Object.freeze(Rooms)
 
 /** init question container **/
-for (let i = 1; i<= 84; i++) {
+for (let i = 1; i<= config.questionCount; i++) {
     questionContainer.push(QuestionStatus.none)
 }
 
@@ -121,6 +120,8 @@ io.on('connection', socket => {
 
         /** remove socket **/
         socket.on('disconnect', () => {
+            controlAccess = false
+            console.log('client has been disconnected')
             io.in(Rooms.users).emit('denyRemoteControl')
         })
     })
@@ -141,14 +142,11 @@ io.on('connection', socket => {
     /** new raw frame from client **/
     socket.on('rawFrame', rect => {
         /** encode and send frame to all users **/
-        //todo remove
-        console.log('raw')
         encodeAndSendFrame(rect, sendFrame)
     })
 
     /** new copy frame from client**/
     socket.on('copyFrame', rect => {
-        console.log('copyFrame')
         sendCopyFrame(rect)
     })
 
@@ -179,7 +177,7 @@ io.on('connection', socket => {
         files.splice(files.indexOf(/readme/gm), 1)
         socket.emit('oldScreens', files)
         /** send all question statuses **/
-        for (let i = 0; i <= 83; i++) {
+        for (let i = 0; i <= questionContainer.length; i++) {
             socket.emit('questionStatusFromServer', {
                 id: i + 1,
                 status: questionContainer[i],
@@ -236,6 +234,21 @@ io.on('connection', socket => {
         currentController.isControlNow = false
         socket.broadcast.emit('stopRemoteControl')
         io.in(Rooms.users).emit('allowRemoteControl')
+    })
+
+    /** remove screens (new or answered) **/
+    socket.on('removeScreens', removeScrees)
+
+    /** reset question statuses **/
+    socket.on('resetQuestions', () => {
+        for (let i = 0; i < questionContainer.length; i++) {
+            questionContainer[i] = QuestionStatus.none
+            io.in(Rooms.users).emit('questionStatusFromServer', {
+                id: i + 1,
+                status: questionContainer[i],
+                isNeedPlaySound: false
+            })
+        }
     })
 
 })
@@ -324,6 +337,25 @@ function getHashedPassword(password) {
 }
 
 /** auth token for user session **/
-const generateAuthToken = () => {
+function generateAuthToken() {
     return crypto.randomBytes(30).toString('hex')
+}
+
+/** remove screens **/
+async function removeScrees(isNew) {
+    let files = await readDirFiles(__dirname + '/screens')
+
+    if (isNew)
+        files = files.filter(fileName => fileName.startsWith('new'))
+    else
+        files = files.filter(fileName => fileName.startsWith('answered'))
+
+    files.forEach(fileName => {
+        fs.unlink(__dirname + `/screens/${fileName}`, () => {})
+    })
+
+    if (isNew)
+        io.in(Rooms.users).emit('newScreensIsDeleted')
+    else
+        io.in(Rooms.users).emit('answeredScreensIsDeleted')
 }

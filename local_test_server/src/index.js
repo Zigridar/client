@@ -96,15 +96,17 @@ $(document).ready(async () => {
                 addOldScreen(`/${item}`)
             }
         })
-        scrollDrown('screencontent_new')
-        scrollDrown('screencontent_old')
+        //todo is it need?
+        // scrollDrown('screencontent_new')
+        // scrollDrown('screencontent_old')
     })
 
     /** add new screen to page **/
     socket.on('newScreenshot', filename => {
         addNewScreen(filename)
-        fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info, true)
-        scrollDrown('screencontent_new')
+        fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
+        //todo
+        // scrollDrown('screencontent_new')
         $('#new_counter').html(++newCounter)
         $('#new_counter').removeClass('scale-out')
         $('#new_counter').addClass('scale-in')
@@ -113,8 +115,9 @@ $(document).ready(async () => {
     /** add answered screen to page **/
     socket.on('answeredScreenshot', filename => {
         addOldScreen(filename)
-        fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info, true)
-        scrollDrown('screencontent_old')
+        fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
+        //todo
+        // scrollDrown('screencontent_old')
         $('#answered_counter').html(++answeredCounter)
         $('#answered_counter').removeClass('scale-out')
         $('#answered_counter').addClass('scale-in')
@@ -125,52 +128,44 @@ $(document).ready(async () => {
         $(`#question_${data.id}`).removeClass('grey darken-1 cyan lighten-3 yellow accent-4 red darken-1 green accent-4')
         let newStyleClass = ''
         if (data.status == QuestionStatus.none) {
-            fireNotification(`Вопрос ${data.id} отсутствует`, NotificationStatus.error, data.isNeedPlaySound)
+            if (data.isNeedPlaySound)
+                fireNotification(`Вопрос ${data.id} отсутствует`, NotificationStatus.error)
             newStyleClass = 'grey darken-1'
         }
         else if (data.status == QuestionStatus.received) {
             newStyleClass = 'cyan lighten-3'
-            fireNotification(`Вопрос ${data.id} получен`, NotificationStatus.info, data.isNeedPlaySound)
+            if (data.isNeedPlaySound)
+                fireNotification(`Вопрос ${data.id} получен`, NotificationStatus.info)
         }
         else if (data.status == QuestionStatus.resolving) {
             newStyleClass = 'yellow accent-4'
-            fireNotification(`Вопрос ${data.id} решается`, NotificationStatus.warning, data.isNeedPlaySound)
+            if (data.isNeedPlaySound)
+                fireNotification(`Вопрос ${data.id} решается`, NotificationStatus.warning)
         }
         else if (data.status == QuestionStatus.suspended) {
             newStyleClass = 'red darken-1'
-            fireNotification(`Вопрос ${data.id} отложен`, NotificationStatus.error, data.isNeedPlaySound)
+            if (data.isNeedPlaySound)
+                fireNotification(`Вопрос ${data.id} отложен`, NotificationStatus.error)
         }
         else if (data.status == QuestionStatus.done) {
             newStyleClass = 'green accent-4'
-            fireNotification(`Вопрос ${data.id} решен`, NotificationStatus.success, data.isNeedPlaySound)
+            if (data.isNeedPlaySound)
+                fireNotification(`Вопрос ${data.id} решен`, NotificationStatus.success)
         }
         $(`#question_${data.id}`).addClass(newStyleClass)
     })
 
     /** init frame **/
     socket.on('initFrame', rect => {
-        if (!isInit) {
-            isInit = true
-            screen.init(rect.width, rect.height)
-
-            /** screen mouse handler **/
-            screen.on('mouseEvent', (x, y, button) => {
-                socket.emit('mouseEventFromNode', {
-                    x: x,
-                    y: y,
-                    button: button
-                })
-            })
-
-            /** screen keyboard handler **/
-            screen.on('keyEvent', (code, shift, isDown) => {
-                socket.emit('keyboardEventFromNode', {
-                    code: code,
-                    shift: shift,
-                    isDown: isDown
-                })
-            })
+        if (isInit) {
+            screen.removeHandlers()
         }
+        else {
+            isInit = true
+            screen.removeHandlers()
+        }
+        screen.init(rect.width, rect.height)
+        addScreenHandlers(screen, socket)
     })
 
     /** draw new raw frame **/
@@ -189,7 +184,7 @@ $(document).ready(async () => {
             controlAccess = true
             remoteAccess = true
             controlBtnHandler(socket)
-            fireNotification('Рарешен удаленный доступ', NotificationStatus.warning, true)
+            fireNotification('Рарешен удаленный доступ', NotificationStatus.warning)
         }
     })
 
@@ -212,7 +207,7 @@ $(document).ready(async () => {
         controlAccess = false
         $('#remote-controller').addClass('scale-out')
         $('#remote-controller').removeClass('scale-in')
-        fireNotification('Удаленное управление пользователем', NotificationStatus.info, true)
+        fireNotification('Удаленное управление пользователем', NotificationStatus.info)
     })
 
     /** other user has stoped remote control **/
@@ -223,10 +218,31 @@ $(document).ready(async () => {
         }
     })
 
+    /** new screens has been deleted **/
+    socket.on('newScreensIsDeleted', () => {
+        $("#lightgallery_new").html('')
+        $("#lightgallery_new").data('lightGallery').destroy(true)
+        $("#lightgallery_new").lightGallery(galleryOptions_new)
+    })
+
+    /** answered screens has been deleted **/
+    socket.on('answeredScreensIsDeleted', () => {
+        $("#lightgallery_old").html('')
+        $("#lightgallery_old").data('lightGallery').destroy(true)
+        $("#lightgallery_old").lightGallery(galleryOptions_old)
+    })
+
     /** creating the question table **/
-    await createQuestionTable(84, socket)
+    await createQuestionTable(150, socket)
     /** tooltip init **/
     $('.tooltipped').tooltip()
+    /** action button init **/
+    $('.fixed-action-btn').floatingActionButton({
+        direction: 'bottom',
+        hoverEnabled: false
+    })
+    /** add edit button handlers **/
+    addEditHandlers(socket)
 })
 
 /** add new screen to new screens **/
@@ -258,7 +274,7 @@ function addOldScreen(name) {
 }
 
 /** fire notification **/ //todo sound
-function fireNotification(text, notificationStatus, isNeedPlaySound) {
+function fireNotification(text, notificationStatus) {
     Swal.fire({
         title: text,
         type: notificationStatus,
@@ -267,9 +283,8 @@ function fireNotification(text, notificationStatus, isNeedPlaySound) {
         timer: 4000,
         showConfirmButton: false,
         background: '#cbf7f4'
-    });
-    if (isNeedPlaySound)
-        playSound('notification.wav')
+    })
+    playSound('notification.wav')
 }
 /** play sound **/
 function playSound(url) {
@@ -374,5 +389,68 @@ function controlBtnHandler(socket) {
             /** recursive call **/
             controlBtnHandler(socket)
         })
+    })
+}
+
+/** add screen handlers to screen **/
+function addScreenHandlers(screen, socket) {
+    /** screen mouse handler **/
+    screen.on('mouseEvent', (x, y, button) => {
+        socket.emit('mouseEventFromNode', {
+            x: x,
+            y: y,
+            button: button
+        })
+    })
+
+    /** screen keyboard handler **/
+    screen.on('keyEvent', (code, shift, isDown) => {
+        socket.emit('keyboardEventFromNode', {
+            code: code,
+            shift: shift,
+            isDown: isDown
+        })
+    })
+}
+
+/** create confirm dialog **/
+function confirmDialog(text, ok, cancel) {
+    Swal.fire({
+        title: text,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Да',
+        cancelButtonText: 'Отмена'
+    }).then((result) => {
+        if (result.value)
+            ok()
+        else if (cancel)
+            cancel()
+    })
+}
+
+/** add handler to edit buttons **/
+function addEditHandlers(socket) {
+    $('#deleteNew').click(() => {
+        const success = () => {
+            socket.emit('removeScreens', true)
+        }
+        confirmDialog('Удалить все новые скрины?', success)
+    })
+
+    $('#deleteAnswered').click(() => {
+        const success = () => {
+            socket.emit('removeScreens', false)
+        }
+        confirmDialog('Удалить все отвеченные скрины?', success)
+    })
+    /**  **/
+    $('#resetQuestions').click(() => {
+        const success = () => {
+            socket.emit('resetQuestions')
+        }
+        confirmDialog('Сбросить вопросы?', success)
     })
 }
