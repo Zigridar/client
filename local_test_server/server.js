@@ -51,9 +51,12 @@ app.post('/', (req, res) => {
         authTokens[authToken] = user
         res.cookie('AuthToken', authToken)
         res.redirect('/main')
+        console.log(`user ${user.login} has authorized, ${new Date()}`)
     }
-    else
+    else {
         res.redirect('/')
+        console.log(`authorisation failed with login ${login}, ${new Date()}`)
+    }
 })
 
 app.use((req, res, next) => {
@@ -103,9 +106,6 @@ for (let i = 1; i<= config.questionCount; i++) {
 /** socket connection **/
 io.on('connection', socket => {
     //todo names
-
-    console.log('socket connection')
-
     /**
      *
      * Client socket handlers
@@ -118,6 +118,7 @@ io.on('connection', socket => {
         initFrame = rect
         io.in(Rooms.users).emit('initFrame', rect)
         io.in(Rooms.users).emit('clientHasBeenConnected')
+        console.log(`client has been connected, ${new Date()}`)
 
         /** remove socket **/
         socket.on('disconnect', () => {
@@ -125,6 +126,7 @@ io.on('connection', socket => {
             console.log('client has been disconnected')
             io.in(Rooms.users).emit('denyRemoteControl')
             io.in(Rooms.users).emit('clientHasBeenDisconnected')
+            console.log(`client has been disconnected, ${new Date()}`)
         })
     })
 
@@ -138,6 +140,7 @@ io.on('connection', socket => {
                 io.in(Rooms.users).emit('newScreenshot', `/${data.filename}`)
             else
                 io.in(Rooms.users).emit('answeredScreenshot', `/${data.filename}`)
+            console.log(`new screenshot: ${data.filename}, ${new Date()}`)
         })
     })
 
@@ -156,12 +159,14 @@ io.on('connection', socket => {
     socket.on('allowRemoteControl', () => {
         controlAccess = true
         io.in(Rooms.users).emit('allowRemoteControl')
+        console.log(`allow remote control, ${new Date()}`)
     })
 
     /** remote control has been denied **/
     socket.on('denyRemoteControl', () => {
         controlAccess = false
         io.in(Rooms.users).emit('denyRemoteControl')
+        console.log(`deny remote control, ${new Date()}`)
     })
 
 
@@ -174,6 +179,7 @@ io.on('connection', socket => {
     /** add user **/
     socket.on('user', async () => {
         socket.join(Rooms.users)
+        console.log(`new user socket has been connected ${new Date()}`)
         /** send old screens **/
         const files = await readDirFiles(__dirname + '/screens')
         files.splice(files.indexOf(/readme/gm), 1)
@@ -195,11 +201,13 @@ io.on('connection', socket => {
 
         /** remove socket **/
         socket.on('disconnect', () => {
+            console.log(`user socket has been disconnected, ${new Date()}`)
             if (currentController.isControlNow && currentController.socket == socket) {
                 currentController.isControlNow = false
                 currentController.socket = null
                 io.in(Rooms.users).emit('stopRemoteControl')
                 io.in(Rooms.users).emit('allowRemoteControl')
+                console.log(`stop remote control, ${new Date()}`)
             }
         })
     })
@@ -208,6 +216,7 @@ io.on('connection', socket => {
     socket.on('questionStatusFromNode', data => {
         questionContainer[data.id - 1] = data.status
         socket.broadcast.emit('questionStatusFromServer', data)
+        console.log(`question ${data.id}, status: ${data.status}, ${new Date()}`)
     })
 
     /** mouse event from node **/
@@ -228,6 +237,7 @@ io.on('connection', socket => {
         currentController.socket = socket
         currentController.isControlNow = true
         socket.broadcast.emit('startRemoteControl')
+        console.log(`start remote control, ${new Date()}`)
     })
 
     /** stop remote control **/
@@ -236,6 +246,7 @@ io.on('connection', socket => {
         currentController.isControlNow = false
         socket.broadcast.emit('stopRemoteControl')
         io.in(Rooms.users).emit('allowRemoteControl')
+        console.log(`stop remote control, ${new Date()}`)
     })
 
     /** remove screens (new or answered) **/
@@ -251,6 +262,7 @@ io.on('connection', socket => {
                 isNeedPlaySound: false
             })
         }
+        console.log(`reset questions, ${new Date()}`)
     })
 
 })
@@ -360,4 +372,5 @@ async function removeScrees(isNew) {
         io.in(Rooms.users).emit('newScreensIsDeleted')
     else
         io.in(Rooms.users).emit('answeredScreensIsDeleted')
+    console.log(`delete screens, isNew: ${isNew}, ${new Date()}`)
 }
