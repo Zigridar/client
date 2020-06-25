@@ -7,7 +7,10 @@
     "daemon": "forever start main.js",
     "daemon-stop": "forever stop main.js",
     "start": "node main.js",
-    "server": "node ./local_test_server/server.js"
+    "server-start": "forever start -o server.log -e server-err.log -a ./local_test_server/server.js",
+    "server-stop": "forever stop ./local_test_server/server.js",
+    "server-restart": "forever restart -o server.log -e server-err.log -a ./local_test_server/server.js",
+    "update": "git pull"
   },
   "author": "Zigridar",
   "license": "ISC",
