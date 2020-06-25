@@ -117,12 +117,14 @@ io.on('connection', socket => {
         socket.join(Rooms.client)
         initFrame = rect
         io.in(Rooms.users).emit('initFrame', rect)
+        io.in(Rooms.users).emit('clientHasBeenConnected')
 
         /** remove socket **/
         socket.on('disconnect', () => {
             controlAccess = false
             console.log('client has been disconnected')
             io.in(Rooms.users).emit('denyRemoteControl')
+            io.in(Rooms.users).emit('clientHasBeenDisconnected')
         })
     })
 

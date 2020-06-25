@@ -232,6 +232,20 @@ $(document).ready(async () => {
         $("#lightgallery_old").lightGallery(galleryOptions_old)
     })
 
+    /** connect has been connected to server **/
+    socket.on('clientHasBeenConnected', () => {
+        $('#client-status').removeClass('red')
+        $('#client-status').addClass('light-green')
+        $('#status-icon').html('settings_input_antenna')
+    })
+
+    /** client has been disconnected from server **/
+    socket.on('clientHasBeenDisconnected', () => {
+        $('#client-status').removeClass('light-green')
+        $('#client-status').addClass('red')
+        $('#status-icon').html('report_problem')
+    })
+
     /** creating the question table **/
     await createQuestionTable(150, socket)
     /** tooltip init **/

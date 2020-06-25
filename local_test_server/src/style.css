@@ -66,3 +66,7 @@ img {
 body {
     -webkit-user-select: none;
 }
+
+#client-status {
+    left: 300px;
+}
