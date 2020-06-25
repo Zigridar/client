@@ -62,3 +62,7 @@ img {
     right: -20px;
     top: 2px
 }
+
+body {
+    -webkit-user-select: none;
+}
