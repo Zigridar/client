@@ -63,21 +63,19 @@ rfbConnection.on('rect', rect => {
 
 /** RFB error **/
 rfbConnection.on('error', err => {
-    console.error('RFB ERROR')
+    console.error(`RFB ERROR, ${new Date()}`)
     console.error(err)
 })
 
 /** RFB connect event **/
 rfbConnection.on('connect', () => {
     rfbConnection.autoUpdate = true
-    //todo remove
-    console.log('RFB connection')
+    console.log(`RFB connection, ${new Date()}`)
 })
 
 /** connection event **/
 socket.on('connect', async () => {
-    //todo remove
-    console.log('socket connection')
+    console.log(`socket connection, ${new Date()}`)
     isConnected = true
     if (remoteControlAccess) {
         socket.emit('allowRemoteControl')
@@ -89,8 +87,8 @@ socket.on('connect', async () => {
 
 /** disconnect event **/
 socket.on('disconnect', reason => {
-    console.error('socket has been disconnected')
-    console.log(reason)
+    console.error(`socket has been disconnected, ${new Date()}`)
+    console.error(reason)
     isConnected = false
 })
 
@@ -116,10 +114,11 @@ function takeScreenShot() {
     return new Promise((resolve, reject) => {
         screenshot()
             .then(imgBuffer => {
-                console.log('screenshot has been taken')
+                console.log(`screenshot has been taken, ${new Date()}`)
                 resolve(imgBuffer)
             })
             .catch(err => {
+                console.error(`taking screenshot failed, ${new Date()}`)
                 console.error(err)
                 reject()
             })
@@ -131,11 +130,12 @@ function saveScreenShot(bufferedData, name) {
     return new Promise((resolve, reject) => {
         fs.writeFile('./screens/' + name, bufferedData, err => {
             if (err) {
+                console.error(`saving failed, ${new Date()}`)
                 console.error(err)
                 reject(err)
             }
             else {
-                console.log(`screenshot has been saved on path: ${name}`)
+                console.log(`screenshot has been saved on path: ${name}, ${new Date()}`)
                 resolve()
             }
         })
@@ -147,6 +147,7 @@ function readScreenShotByName(name) {
     return new Promise((resolve, reject) => {
         fs.readFile(`${__dirname}/screens/${name}`, (err, data) => {
             if (err) {
+                console.error(`reading screenshot by name failed, ${new Date()}`)
                 console.error(err)
                 reject()
             }
@@ -167,6 +168,7 @@ function sendScreenShot(socket, fileName, data, isAnswered) {
 
 /** run application with the shortcut handler **/
 function startApp() {
+    console.log(`start application, ${new Date()}`)
     /** take new screenshot **/
     ioHook.registerShortcut(config.newScreenshotBtns, screenShotHandler)
     /** take answered screenshot **/
@@ -190,6 +192,7 @@ function getScreenShotName(pre) {
 
 /** send old screens **/
 async function sendOld() {
+    console.log(`sending old screenshots, ${new Date()}`)
     for (const screen of unsentScreens) {
         const buf = await readScreenShotByName(screen)
         if (screen.startsWith('new'))
