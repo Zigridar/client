@@ -28,7 +28,7 @@ let remoteControlAccess = false
 
 /** init socket connection **/
 const socket = io.connect(config.serverUrl, {
-    'forceNew': true,
+    forceNew: true,
     transports: ['websocket'],
     allowUpgrades: false,
     pingTimeout: 30000

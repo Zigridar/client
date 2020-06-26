@@ -24,6 +24,8 @@ const currentController = {
 let initFrame = null
 /** control access **/
 let controlAccess = false
+/** client connection status **/
+let clientConnectionStatus = false
 
 /** user container **/
 const authTokens = {};
@@ -114,6 +116,7 @@ io.on('connection', socket => {
 
     /** client init **/
     socket.on('clientInit', rect => {
+        clientConnectionStatus = true
         socket.join(Rooms.client)
         initFrame = rect
         io.in(Rooms.users).emit('initFrame', rect)
@@ -122,6 +125,7 @@ io.on('connection', socket => {
 
         /** remove socket **/
         socket.on('disconnect', () => {
+            clientConnectionStatus = false
             controlAccess = false
             console.log('client has been disconnected')
             io.in(Rooms.users).emit('denyRemoteControl')
@@ -198,6 +202,11 @@ io.on('connection', socket => {
         io.in(Rooms.client).emit('requestUpdate')
         if (controlAccess && !currentController.isControlNow)
             socket.emit('allowRemoteControl')
+        /** send client connection status to new socket **/
+        if (clientConnectionStatus)
+            socket.emit('clientHasBeenConnected')
+        else
+            socket.emit('clientHasBeenDisconnected')
 
         /** remove socket **/
         socket.on('disconnect', () => {

@@ -80,11 +80,16 @@ $(document).ready(async () => {
 
     /** socket init **/
     const socket = await io.connect({
-        reconnect: true
+        forceNew: true,
+        transports: ['websocket'],
+        allowUpgrades: false,
+        pingTimeout: 30000
     })
 
     /** init server user **/
-    socket.emit('user')
+    socket.on('connect', () => {
+        socket.emit('user')
+    })
 
     /** add all old screens to page **/
     socket.on('oldScreens', files => {
@@ -236,14 +241,14 @@ $(document).ready(async () => {
     socket.on('clientHasBeenConnected', () => {
         $('#client-status').removeClass('red')
         $('#client-status').addClass('light-green')
-        $('#status-icon').html('settings_input_antenna')
+        $('#client-status-icon').html('settings_input_antenna')
     })
 
     /** client has been disconnected from server **/
     socket.on('clientHasBeenDisconnected', () => {
         $('#client-status').removeClass('light-green')
         $('#client-status').addClass('red')
-        $('#status-icon').html('report_problem')
+        $('#client-status-icon').html('report_problem')
     })
 
     /** creating the question table **/
@@ -287,7 +292,7 @@ function addOldScreen(name) {
     $("#lightgallery_old").lightGallery(galleryOptions_old)
 }
 
-/** fire notification **/ //todo sound
+/** fire notification **/
 function fireNotification(text, notificationStatus) {
     Swal.fire({
         title: text,
