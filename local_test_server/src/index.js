@@ -55,23 +55,30 @@ let answeredCounter = 0
 let controlAccess = false
 let remoteAccess = false
 
-/** is init remote screen **/
-let isInit = false
-
 /** page init **/
 $(document).ready(async () => {
-    /** gallery init **/
-    $("#lightgallery_new").lightGallery(galleryOptions_new)
-    $("#lightgallery_old").lightGallery(galleryOptions_old)
 
-    $('#lightgallery_new').on('onBeforeOpen.lg', () => {
-        $('#new_counter').removeClass('scale-in')
-        $('#new_counter').addClass('scale-out')
+    /** jQuery objects init **/
+    const galleryNew = $("#lightgallery_new")
+    const galleryOld = $("#lightgallery_old")
+    const newCounterIcon = $('#new_counter')
+    const answeredCounterIcon = $('#answered_counter')
+    const remoteController = $('#remote-controller')
+    const clientStatus = $('#client-status')
+    const clientStatusIcon = $('#client-status-icon')
+
+    /** gallery init **/
+    galleryNew.lightGallery(galleryOptions_new)
+    galleryOld.lightGallery(galleryOptions_old)
+
+    galleryNew.on('onBeforeOpen.lg', () => {
+        newCounterIcon.removeClass('scale-in')
+        newCounterIcon.addClass('scale-out')
         newCounter = 0
     })
-    $('#lightgallery_old').on('onBeforeOpen.lg', () => {
-        $('#answered_counter').removeClass('scale-in')
-        $('#answered_counter').addClass('scale-out')
+    galleryOld.on('onBeforeOpen.lg', () => {
+        answeredCounterIcon.removeClass('scale-in')
+        answeredCounterIcon.addClass('scale-out')
         answeredCounter = 0
     })
 
@@ -95,37 +102,30 @@ $(document).ready(async () => {
     socket.on('oldScreens', files => {
         files.forEach(item => {
             if (item.startsWith('new')){
-                addNewScreen(`/${item}`)
+                addNewScreen(`/${item}`, galleryNew)
             }
             else {
-                addOldScreen(`/${item}`)
+                addOldScreen(`/${item}`, galleryOld)
             }
         })
-        //todo is it need?
-        // scrollDrown('screencontent_new')
-        // scrollDrown('screencontent_old')
     })
 
     /** add new screen to page **/
     socket.on('newScreenshot', filename => {
-        addNewScreen(filename)
+        addNewScreen(filename, galleryNew)
         fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
-        //todo
-        // scrollDrown('screencontent_new')
-        $('#new_counter').html(++newCounter)
-        $('#new_counter').removeClass('scale-out')
-        $('#new_counter').addClass('scale-in')
+        newCounterIcon.html(++newCounter)
+        newCounterIcon.removeClass('scale-out')
+        newCounterIcon.addClass('scale-in')
     })
 
     /** add answered screen to page **/
     socket.on('answeredScreenshot', filename => {
-        addOldScreen(filename)
+        addOldScreen(filename, galleryOld)
         fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
-        //todo
-        // scrollDrown('screencontent_old')
-        $('#answered_counter').html(++answeredCounter)
-        $('#answered_counter').removeClass('scale-out')
-        $('#answered_counter').addClass('scale-in')
+        answeredCounterIcon.html(++answeredCounter)
+        answeredCounterIcon.removeClass('scale-out')
+        answeredCounterIcon.addClass('scale-in')
     })
 
     /** receive new question status from server **/
@@ -162,13 +162,7 @@ $(document).ready(async () => {
 
     /** init frame **/
     socket.on('initFrame', rect => {
-        if (isInit) {
-            screen.removeHandlers()
-        }
-        else {
-            isInit = true
-            screen.removeHandlers()
-        }
+        screen.removeHandlers()
         screen.init(rect.width, rect.height)
         addScreenHandlers(screen, socket)
     })
@@ -188,7 +182,7 @@ $(document).ready(async () => {
         if (!remoteAccess) {
             controlAccess = true
             remoteAccess = true
-            controlBtnHandler(socket)
+            controlBtnHandler(socket, remoteController)
             fireNotification('Рарешен удаленный доступ', NotificationStatus.warning)
         }
     })
@@ -200,18 +194,18 @@ $(document).ready(async () => {
             controlAccess = false
             $('#page-content').css('display', 'block')
             $('#screen').css('display', 'none')
-            $('#remote-controller').addClass('scale-out')
-            $('#remote-controller').removeClass('scale-in')
-            $('#remote-controller').removeClass('red accent-4')
-            $('#remote-controller').off('click')
+            remoteController.addClass('scale-out')
+            remoteController.removeClass('scale-in')
+            remoteController.removeClass('red accent-4')
+            remoteController.off('click')
         }
     })
 
     /** other user has started remote control **/
     socket.on('startRemoteControl', () => {
         controlAccess = false
-        $('#remote-controller').addClass('scale-out')
-        $('#remote-controller').removeClass('scale-in')
+        remoteController.addClass('scale-out')
+        remoteController.removeClass('scale-in')
         fireNotification('Удаленное управление пользователем', NotificationStatus.info)
     })
 
@@ -219,36 +213,36 @@ $(document).ready(async () => {
     socket.on('stopRemoteControl', () => {
         controlAccess = true
         if (remoteAccess) {
-            controlBtnHandler(socket)
+            controlBtnHandler(socket, remoteController)
         }
     })
 
     /** new screens has been deleted **/
     socket.on('newScreensIsDeleted', () => {
-        $("#lightgallery_new").html('')
-        $("#lightgallery_new").data('lightGallery').destroy(true)
-        $("#lightgallery_new").lightGallery(galleryOptions_new)
+        galleryNew.html('')
+        galleryNew.data('lightGallery').destroy(true)
+        galleryNew.lightGallery(galleryOptions_new)
     })
 
     /** answered screens has been deleted **/
     socket.on('answeredScreensIsDeleted', () => {
-        $("#lightgallery_old").html('')
-        $("#lightgallery_old").data('lightGallery').destroy(true)
-        $("#lightgallery_old").lightGallery(galleryOptions_old)
+        galleryOld.html('')
+        galleryOld.data('lightGallery').destroy(true)
+        galleryOld.lightGallery(galleryOptions_old)
     })
 
     /** connect has been connected to server **/
     socket.on('clientHasBeenConnected', () => {
-        $('#client-status').removeClass('red')
-        $('#client-status').addClass('light-green')
-        $('#client-status-icon').html('settings_input_antenna')
+        clientStatus.removeClass('red')
+        clientStatus.addClass('light-green')
+        clientStatusIcon.html('settings_input_antenna')
     })
 
     /** client has been disconnected from server **/
     socket.on('clientHasBeenDisconnected', () => {
-        $('#client-status').removeClass('light-green')
-        $('#client-status').addClass('red')
-        $('#client-status-icon').html('report_problem')
+        clientStatus.removeClass('light-green')
+        clientStatus.addClass('red')
+        clientStatusIcon.html('report_problem')
     })
 
     /** creating the question table **/
@@ -265,7 +259,7 @@ $(document).ready(async () => {
 })
 
 /** add new screen to new screens **/
-function addNewScreen(name) {
+function addNewScreen(name, galleryNew) {
     const slide =
     `  <a href="${name}">
           <div class="caption hoverable z-depth-1 center-align">
@@ -273,13 +267,13 @@ function addNewScreen(name) {
             <p>${name.slice(1, name.length - 4)}</p>
           </div>
       </a>`
-    $("#lightgallery_new").append(slide)
-    $("#lightgallery_new").data('lightGallery').destroy(true)
-    $("#lightgallery_new").lightGallery(galleryOptions_new)
+    galleryNew.append(slide)
+    galleryNew.data('lightGallery').destroy(true)
+    galleryNew.lightGallery(galleryOptions_new)
 }
 
 /** add answered screen **/
-function addOldScreen(name) {
+function addOldScreen(name, galleryOld) {
     const slide =
         `  <a href="${name}">
           <div class="caption hoverable z-depth-1 center-align">
@@ -287,9 +281,9 @@ function addOldScreen(name) {
             <p>${name.slice(1, name.length - 4)}</p>
           </div>
       </a>`
-    $("#lightgallery_old").append(slide)
-    $("#lightgallery_old").data('lightGallery').destroy(true)
-    $("#lightgallery_old").lightGallery(galleryOptions_old)
+    galleryOld.append(slide)
+    galleryOld.data('lightGallery').destroy(true)
+    galleryOld.lightGallery(galleryOptions_old)
 }
 
 /** fire notification **/
@@ -329,36 +323,31 @@ function createCheckButton(number) {
 async function createQuestionTable(count, socket) {
     for (let i = 1; i <= count; i++) {
         await createCheckButton(i)
-        $(`#question_${i}`).click(e => {
+        $(`#question_${i}`).click(() => {
             if ($(`#question_${i}`).hasClass('grey darken-1')) {
                 $(`#question_${i}`).toggleClass('grey darken-1')
                 $(`#question_${i}`).toggleClass('cyan lighten-3')
                 broadCastQuestionStatus(socket, i, QuestionStatus.received)
-                // fireNotification(`Вопрос ${i} получен`, NotificationStatus.info)
             }
             else if ($(`#question_${i}`).hasClass('cyan lighten-3')) {
                 $(`#question_${i}`).toggleClass('cyan lighten-3')
                 $(`#question_${i}`).toggleClass('yellow accent-4')
                 broadCastQuestionStatus(socket, i, QuestionStatus.resolving)
-                // fireNotification(`Вопрос ${i} решается`, NotificationStatus.warning)
             }
             else if ($(`#question_${i}`).hasClass('yellow accent-4')) {
                 $(`#question_${i}`).toggleClass('yellow accent-4')
                 $(`#question_${i}`).toggleClass('red darken-1')
                 broadCastQuestionStatus(socket, i, QuestionStatus.suspended)
-                // fireNotification(`Вопрос ${i} отложен`, NotificationStatus.error)
             }
             else if ($(`#question_${i}`).hasClass('red darken-1')) {
                 $(`#question_${i}`).toggleClass('red darken-1')
                 $(`#question_${i}`).toggleClass('green accent-4')
                 broadCastQuestionStatus(socket, i, QuestionStatus.done)
-                // fireNotification(`Вопрос ${i} решен`, NotificationStatus.success)
             }
             else if ($(`#question_${i}`).hasClass('green accent-4')) {
                 $(`#question_${i}`).toggleClass('green accent-4')
                 $(`#question_${i}`).toggleClass('grey darken-1')
                 broadCastQuestionStatus(socket, i, QuestionStatus.none)
-                // fireNotification(`Вопрос ${i} отсутствует`, NotificationStatus.error)
             }
         })
     }
@@ -380,9 +369,8 @@ function scrollDrown(id) {
 }
 
 /** control button handler **/
-function controlBtnHandler(socket) {
+function controlBtnHandler(socket, controller) {
     controlAccess = true
-    const controller = $('#remote-controller')
     controller.off('click')
     controller.removeClass('scale-out')
     controller.addClass('scale-in')
@@ -406,7 +394,7 @@ function controlBtnHandler(socket) {
             controller.off('click')
             playSound('off.mp3')
             /** recursive call **/
-            controlBtnHandler(socket)
+            controlBtnHandler(socket, controller)
         })
     })
 }
@@ -465,7 +453,7 @@ function addEditHandlers(socket) {
         }
         confirmDialog('Удалить все отвеченные скрины?', success)
     })
-    /**  **/
+    /** reset questions **/
     $('#resetQuestions').click(() => {
         const success = () => {
             socket.emit('resetQuestions')
