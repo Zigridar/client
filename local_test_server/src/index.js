@@ -66,6 +66,8 @@ $(document).ready(async () => {
     const remoteController = $('#remote-controller')
     const clientStatus = $('#client-status')
     const clientStatusIcon = $('#client-status-icon')
+    const userStatus = $('#user-status')
+    const userStatusIcon = $('#user-status-icon')
 
     /** gallery init **/
     galleryNew.lightGallery(galleryOptions_new)
@@ -96,6 +98,19 @@ $(document).ready(async () => {
     /** init server user **/
     socket.on('connect', () => {
         socket.emit('user')
+        userStatus.removeClass('red')
+        userStatus.addClass('light-green')
+        userStatusIcon.html('settings_input_antenna')
+    })
+
+    /** disconnect socket from server **/
+    socket.on('disconnect', () => {
+        userStatus.removeClass('light-green')
+        userStatus.addClass('red')
+        userStatusIcon.html('report_problem')
+        clientStatus.removeClass('light-green')
+        clientStatus.addClass('red')
+        clientStatusIcon.html('report_problem')
     })
 
     /** add all old screens to page **/
