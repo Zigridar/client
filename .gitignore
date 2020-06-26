@@ -1,2 +1,4 @@
 /server.log
 /server-err.log
+/screens/*.png
+/local_test_server/screens/*.png
