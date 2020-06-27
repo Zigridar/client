@@ -8,7 +8,7 @@ const crypto = require('crypto')
 const cookie = require('cookie-parser')
 const config = require('./serverConfig')
 const server = require('http').createServer(app)
-const io = require('socket.io').listen(server)
+const io = require('socket.io')(server , { wsEngine: 'ws' })
 
 server.listen(config.port)
 
