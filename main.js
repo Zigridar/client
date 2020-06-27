@@ -49,7 +49,8 @@ rfbConnection.on('rect', rect => {
         initialFrame = true
         initialRect = rect
     }
-    if (remoteControlAccess || initialFrame) {
+    if (remoteControlAccess || !initialFrame) {
+        console.log(`rect, ${new Date()}`)
         switch (rect.encoding) {
             case rfb.encodings.raw:
                 sendRawFrame(rect)

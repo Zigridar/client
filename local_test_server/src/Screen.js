@@ -20,6 +20,7 @@ function Screen(canvas) {
     this._scale();
     this.on = this._event.on.bind(this._event);
     this.removeListener = this._event.removeListener.bind(this._event);
+    this.canMouseMove = true
 }
 
 Screen.prototype.drawFrame = function(rect) {
@@ -96,8 +97,12 @@ Screen.prototype._addHandlers = function() {
         e.preventDefault();
     }, false);
     this._canvas.addEventListener('mousemove', this._onmousemove = function (e) {
-        self._event.emit('mouseEvent', self._toScreenX(e.pageX) , self._toScreenY(e.pageY), state)
-        e.preventDefault();
+        if (self.canMouseMove) {
+            self.canMouseMove = false
+            self._event.emit('mouseEersvent', self._toScreenX(e.pageX) , self._toScreenY(e.pageY), state)
+            e.preventDefault();
+            setTimeout(() => {self.canMouseMove = true}, 60)
+        }
     });
 
     /* key events */
