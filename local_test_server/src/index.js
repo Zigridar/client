@@ -101,8 +101,28 @@ $(document).ready(async () => {
         console.log('connect')
     })
 
-    peer.on('data', data => {
-        console.log(data)
+    peer.on('data', rect => {
+        rect = JSON.parse(rect)
+        const length = rect.data.data.length
+        const rgba = []
+        for (let i = 0; i < length; i += 4) {
+            rgba[i] = rect.data.data[i + 2]
+            rgba[i + 1] = rect.data.data[i + 1]
+            rgba[i + 2] = rect.data.data[i]
+            rgba[i + 3] = 0xff
+        }
+
+        screen.drawFrame({
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
+                image: {
+                    encoding: 'raw',
+                    data: rgba
+                }
+            }
+        )
     })
 
     /** socket init **/

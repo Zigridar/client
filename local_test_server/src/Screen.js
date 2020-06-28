@@ -99,10 +99,9 @@ Screen.prototype._addHandlers = function() {
     this._canvas.addEventListener('mousemove', this._onmousemove = function (e) {
         if (self.canMouseMove) {
             self.canMouseMove = false
-            console.log(self.canMouseMove)
             self._event.emit('mouseEvent', self._toScreenX(e.pageX) , self._toScreenY(e.pageY), state)
             e.preventDefault();
-            setTimeout(() => {self.canMouseMove = true; console.log(self.canMouseMove)}, 60)
+            setTimeout(() => {self.canMouseMove = true}, 60)
         }
     });
 

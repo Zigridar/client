@@ -7,6 +7,7 @@ const fs = require('fs')
 const ioHook = require('iohook')
 const rfb = require('rfb2')
 const Peer = require('./Peer')
+// const Peer2 = require('./webRTC')
 const config = require('./clientConfig')
 
 /**
@@ -36,6 +37,9 @@ let isRemoteControlNow = false
 /** peer storage **/
 let peer = null
 
+/** can send to peer now **/
+let canSendToPeer = false
+
 /** init socket connection **/
 const socket = io.connect(config.serverUrl, {
     forceNew: true,
@@ -59,7 +63,7 @@ rfbConnection.on('rect', rect => {
         initialFrame = true
         initialRect = rect
     }
-    if (remoteControlAccess && canSendNext || !isRemoteControlNow || !initialFrame) {
+    if ((remoteControlAccess && canSendNext || !isRemoteControlNow) && !canSendToPeer || !initialFrame) {
         canSendNext = false
         setTimeout(() => {canSendNext = true}, 30)
         switch (rect.encoding) {
@@ -70,6 +74,10 @@ rfbConnection.on('rect', rect => {
                 sendCopyFrame(rect)
                 break
         }
+    }
+    /** send rect to peer without server **/
+    if (canSendToPeer && remoteControlAccess) {
+        peer.sendMessage(JSON.stringify(rect))
     }
 })
 
@@ -133,21 +141,15 @@ peer = new Peer()
 peer.createConnection()
 
 peer.on('signal', signal => {
-    console.log('offer to user')
     socket.emit('offerFromClient', signal)
 })
 
 socket.on('answerFromUser', answer => {
-    console.log('answer from user')
     peer.signal(answer)
 })
 
-let counter = 0
-
 peer.on('connect', () => {
-    setInterval(() => {
-        peer.sendMessage(`kek: ${counter++}`)
-    }, 500)
+    canSendToPeer = true
 })
 
 /** returns an arrayBuffer of desktop screenshot **/
