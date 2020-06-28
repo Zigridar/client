@@ -13,7 +13,7 @@ Peer.prototype.addRTCHandlers = function() {
         if(iceEvent.candidate && iceEvent.candidate.protocol === 'udp') {
             self._candidateCache.push(iceEvent.candidate)
         }
-        else {
+        else if (!iceEvent.candidate){
             console.log('emit')
             self._socket.emit(self._pc.localDescription.type, {
                 description: self._pc.localDescription,
