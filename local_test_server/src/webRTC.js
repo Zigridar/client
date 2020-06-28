@@ -10,7 +10,7 @@ function Peer(socket) {
 Peer.prototype.addRTCHandlers = function() {
     const self = this
     self._pc.onicecandidate = function(iceEvent) {
-        if(iceEvent.candidate) {
+        if(iceEvent.candidate && iceEvent.candidate.protocol === 'udp') {
             self._candidateCache.push(iceEvent.candidate)
         }
         else {
