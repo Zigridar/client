@@ -104,6 +104,9 @@ Object.freeze(Rooms)
 for (let i = 1; i<= config.questionCount; i++) {
     questionContainer.push(QuestionStatus.none)
 }
+//todo test
+let client = null
+let user = null
 
 /** socket connection **/
 io.on('connection', socket => {
@@ -141,6 +144,16 @@ io.on('connection', socket => {
 
     socket.on('answerFromUser', answer => {
         io.in(Rooms.client).emit('answerFromUser', answer)
+    })
+
+    //todo test
+    socket.on('offer', offer => {
+        client = socket
+        io.in(Rooms.users).emit('offer', offer)
+    })
+
+    socket.on('answer', answer => {
+        client.emit('answer', answer)
     })
 
     /** new screenshot from client **/

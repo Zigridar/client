@@ -133,6 +133,13 @@ $(document).ready(async () => {
         pingTimeout: 30000
     })
 
+    const peer1 = new Peer(socket)
+    peer1.addRTCHandlers()
+
+    socket.on('offer', offer => {
+        peer1.applyAnswer(offer)
+    })
+
     /** init server user **/
     socket.on('connect', () => {
         socket.emit('user')
