@@ -134,6 +134,15 @@ io.on('connection', socket => {
         })
     })
 
+    socket.on('offerFromClient', offer => {
+        console.log(offer)
+        io.in(Rooms.users).emit('offerFromClient', offer)
+    })
+
+    socket.on('answerFromUser', answer => {
+        io.in(Rooms.client).emit('answerFromUser', answer)
+    })
+
     /** new screenshot from client **/
     socket.on('screenshot', data => {
         fs.writeFile(`${__dirname}/screens/${data.filename}`, data.buffer, err => {

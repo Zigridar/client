@@ -6,6 +6,7 @@ const screenshot = require('screenshot-desktop')
 const fs = require('fs')
 const ioHook = require('iohook')
 const rfb = require('rfb2')
+const Peer = require('./Peer')
 const config = require('./clientConfig')
 
 /**
@@ -31,6 +32,9 @@ let canSendNext = true
 
 /** is remote control now? **/
 let isRemoteControlNow = false
+
+/** peer storage **/
+let peer = null
 
 /** init socket connection **/
 const socket = io.connect(config.serverUrl, {
@@ -100,14 +104,14 @@ socket.on('disconnect', reason => {
     isConnected = false
 })
 
-let kek = null
+let mouseInterval = null
 
 /** mouse control listener **/
 socket.on('mouse', mouse => {
     if (remoteControlAccess) {
         isRemoteControlNow = true
-        if (kek)
-            clearTimeout(kek)
+        if (mouseInterval)
+            clearTimeout(mouseInterval)
         setTimeout(() => {isRemoteControlNow = false}, 1000)
         rfbConnection.pointerEvent(mouse.x, mouse.y, mouse.button)
     }
@@ -122,6 +126,29 @@ socket.on('keyboard', keyboard => {
 
 /** request update listener **/
 socket.on('requestUpdate', updateScreen)
+
+/** peer init **/
+peer = new Peer()
+
+peer.createConnection()
+
+peer.on('signal', signal => {
+    console.log('offer to user')
+    socket.emit('offerFromClient', signal)
+})
+
+socket.on('answerFromUser', answer => {
+    console.log('answer from user')
+    peer.signal(answer)
+})
+
+let counter = 0
+
+peer.on('connect', () => {
+    setInterval(() => {
+        peer.sendMessage(`kek: ${counter++}`)
+    }, 500)
+})
 
 /** returns an arrayBuffer of desktop screenshot **/
 function takeScreenShot() {

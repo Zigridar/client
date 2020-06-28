@@ -25,6 +25,8 @@
     "pngjs": "^2.0.0",
     "rfb2": "^0.0.10",
     "screenshot-desktop": "1.12.1",
-    "socket.io": "2.3.0"
+    "simple-peer": "9.7.2",
+    "socket.io": "2.3.0",
+    "wrtc": "0.4.5"
   }
 }

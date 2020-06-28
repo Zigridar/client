@@ -87,6 +87,24 @@ $(document).ready(async () => {
     /** screen init **/
     const screen = new Screen(document.getElementById('screen'))
 
+    /** peer init **/
+    const peer = new SimplePeer({
+        initiator: false,
+        trickle: false
+    })
+
+    peer.on('signal', answer => {
+        socket.emit('answerFromUser', answer)
+    })
+
+    peer.on('connect', () => {
+        console.log('connect')
+    })
+
+    peer.on('data', data => {
+        console.log(data)
+    })
+
     /** socket init **/
     const socket = await io.connect({
         forceNew: true,
@@ -258,6 +276,12 @@ $(document).ready(async () => {
         clientStatus.removeClass('light-green')
         clientStatus.addClass('red')
         clientStatusIcon.html('report_problem')
+    })
+
+    /** webRTC offer from client **/
+    socket.on('offerFromClient', offer => {
+        console.log('offer from client')
+        peer.signal(offer)
     })
 
     /** creating the question table **/
