@@ -26,6 +26,12 @@ let initialRect = null
 /** remote control permission **/
 let remoteControlAccess = false
 
+/** can send next rect **/
+let canSendNext = true
+
+/** is remote control now? **/
+let isRemoteControlNow = false
+
 /** init socket connection **/
 const socket = io.connect(config.serverUrl, {
     forceNew: true,
@@ -49,8 +55,9 @@ rfbConnection.on('rect', rect => {
         initialFrame = true
         initialRect = rect
     }
-    if (remoteControlAccess || !initialFrame) {
-        console.log(`rect, ${new Date()}`)
+    if (remoteControlAccess && canSendNext || !isRemoteControlNow || !initialFrame) {
+        canSendNext = false
+        setTimeout(() => {canSendNext = true}, 30)
         switch (rect.encoding) {
             case rfb.encodings.raw:
                 sendRawFrame(rect)
@@ -93,9 +100,15 @@ socket.on('disconnect', reason => {
     isConnected = false
 })
 
+let kek = null
+
 /** mouse control listener **/
 socket.on('mouse', mouse => {
     if (remoteControlAccess) {
+        isRemoteControlNow = true
+        if (kek)
+            clearTimeout(kek)
+        setTimeout(() => {isRemoteControlNow = false}, 1000)
         rfbConnection.pointerEvent(mouse.x, mouse.y, mouse.button)
     }
 })
