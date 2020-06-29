@@ -4,18 +4,22 @@ const {RTCPeerConnection} = require('wrtc')
 
 const config = {
     iceServers: [
-        {
-            urls: [
-                'stun:stun.l.google.com:19302',
-                'stun:global.stun.twilio.com:3478'
-            ]
-        }
-    ],
-    sdpSemantics: 'unified-plan'
+        {url:'stun:stun.l.google.com:19302'},
+        {url:'stun:stun1.l.google.com:19302'},
+        {url:'stun:stun2.l.google.com:19302'},
+        {url:'stun:stun3.l.google.com:19302'},
+        {url:'stun:stun4.l.google.com:19302'},
+        {url:'stun:stun.ekiga.net'},
+        {url:'stun:stun.ideasip.com'},
+        {url:'stun:stun.schlund.de'},
+        {url:'stun:stun.voiparound.com'},
+        {url:'stun:stun.voipbuster.com'},
+        {url:'stun:stun.voipstunt.com'},
+    ]
 }
 
 function Peer(socket) {
-    this._pc = new RTCPeerConnection(config)
+    this._pc = new RTCPeerConnection()
     this._socket = socket
     this._dataChanel = null
     this._candidateCache = []
@@ -45,6 +49,7 @@ Peer.prototype.createOffer = function () {
     self._pc.createOffer()
         .then(offer => {
             self._pc.setLocalDescription(offer)
+            console.log('set local')
         })
 }
 
@@ -58,6 +63,7 @@ Peer.prototype.addIceCandidates = function (candidates) {
 Peer.prototype.setRemoteDescription = function (description) {
     const self = this
     self._pc.setRemoteDescription(description)
+    console.log('set remote')
 }
 
 Peer.prototype.applyOffer = function(offer) {
