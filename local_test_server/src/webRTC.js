@@ -23,6 +23,11 @@ function Peer(socket) {
     this._candidateCache = []
 }
 
+function filterTrickle (sdp) {
+    return sdp.replace(/a=ice-options:trickle\s\n/g, '')
+}
+
+
 Peer.prototype.addRTCHandlers = function() {
     const self = this
     self._pc.onicecandidate = function(iceEvent) {
@@ -72,6 +77,7 @@ Peer.prototype.createOffer = function () {
     const self = this
     this._pc.createOffer()
         .then(offer => {
+            offer.sdp = filterTrickle(offer.sdp)
             self._pc.setLocalDescription(offer)
             console.log(offer)
         })
@@ -96,8 +102,9 @@ Peer.prototype.applyAnswer = function(offer) {
         console.log('after remote')
         self._pc.createAnswer()
             .then(answer => {
+                answer.sdp = filterTrickle(answer.sdp)
                 console.log('answer')
-            self._pc.setLocalDescription(answer)
+                self._pc.setLocalDescription(answer)
         })
             .then(() => {
                 console.log('add ice')
