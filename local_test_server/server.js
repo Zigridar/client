@@ -143,7 +143,7 @@ io.on('connection', socket => {
     })
 
     socket.on('answerFromUser', answer => {
-        io.in(Rooms.client).emit('answerFromUser', answer)
+        io.emit('answerFromUser', answer)
     })
 
     //todo test
