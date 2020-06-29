@@ -1,7 +1,19 @@
 'use strict'
 
+const config = {
+    iceServers: [
+        {
+            urls: [
+                'stun:stun.l.google.com:19302',
+                'stun:global.stun.twilio.com:3478'
+            ]
+        }
+    ],
+    sdpSemantics: 'unified-plan'
+}
+
 function Peer(socket) {
-    this._pc = new RTCPeerConnection()
+    this._pc = new RTCPeerConnection(config)
     this._socket = socket
     this._dataChanel = null
     this._candidateCache = []

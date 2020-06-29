@@ -2,8 +2,20 @@
 
 const {RTCPeerConnection} = require('wrtc')
 
+const config = {
+    iceServers: [
+        {
+            urls: [
+                'stun:stun.l.google.com:19302',
+                'stun:global.stun.twilio.com:3478'
+            ]
+        }
+    ],
+    sdpSemantics: 'unified-plan'
+}
+
 function Peer(socket) {
-    this._pc = new RTCPeerConnection()
+    this._pc = new RTCPeerConnection(config)
     this._socket = socket
     this._dataChanel = null
     this._candidateCache = []
@@ -12,10 +24,11 @@ function Peer(socket) {
 Peer.prototype.addRTCHandlers = function() {
     const self = this
     self._pc.onicecandidate = function(iceEvent) {
-        if(iceEvent.candidate && iceEvent.candidate.protocol === 'udp') {
+        if(iceEvent.candidate) {
             self._candidateCache.push(iceEvent.candidate)
         }
         else if (!iceEvent.candidate){
+            console.log(self._pc.localDescription.type)
             self._socket.emit(self._pc.localDescription.type, {
                 description: self._pc.localDescription,
                 candidates: self._candidateCache
