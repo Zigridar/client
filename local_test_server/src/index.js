@@ -88,7 +88,7 @@ $(document).ready(async () => {
     const screen = new Screen(document.getElementById('screen'))
 
     /** peer init **/
-    const peer = new SimplePeer({
+    const peer = new Peer({
         initiator: false,
         trickle: false
     })
@@ -102,27 +102,30 @@ $(document).ready(async () => {
     })
 
     peer.on('data', rect => {
-        rect = JSON.parse(rect)
-        const length = rect.data.data.length
-        const rgba = []
-        for (let i = 0; i < length; i += 4) {
-            rgba[i] = rect.data.data[i + 2]
-            rgba[i + 1] = rect.data.data[i + 1]
-            rgba[i + 2] = rect.data.data[i]
-            rgba[i + 3] = 0xff
-        }
+        console.log(rect)
+        //todo webrtc test
 
-        screen.drawFrame({
-                x: rect.x,
-                y: rect.y,
-                width: rect.width,
-                height: rect.height,
-                image: {
-                    encoding: 'raw',
-                    data: rgba
-                }
-            }
-        )
+        // rect = JSON.parse(rect)
+        // const length = rect.data.data.length
+        // const rgba = []
+        // for (let i = 0; i < length; i += 4) {
+        //     rgba[i] = rect.data.data[i + 2]
+        //     rgba[i + 1] = rect.data.data[i + 1]
+        //     rgba[i + 2] = rect.data.data[i]
+        //     rgba[i + 3] = 0xff
+        // }
+        //
+        // screen.drawFrame({
+        //         x: rect.x,
+        //         y: rect.y,
+        //         width: rect.width,
+        //         height: rect.height,
+        //         image: {
+        //             encoding: 'raw',
+        //             data: rgba
+        //         }
+        //     }
+        // )
     })
 
     /** socket init **/
@@ -133,12 +136,12 @@ $(document).ready(async () => {
         pingTimeout: 30000
     })
 
-    const peer1 = new Peer(socket)
-    peer1.addRTCHandlers()
-
-    socket.on('offer', offer => {
-        peer1.applyAnswer(offer)
-    })
+    // const peer1 = new Peer(socket)
+    // peer1.addRTCHandlers()
+    //
+    // socket.on('offer', offer => {
+    //     peer1.applyAnswer(offer)
+    // })
 
     /** init server user **/
     socket.on('connect', () => {

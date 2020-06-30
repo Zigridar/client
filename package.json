@@ -11,7 +11,8 @@
     "server-start": "forever start -o server.log -e server-err.log -a ./local_test_server/server.js",
     "server-stop": "forever stop ./local_test_server/server.js",
     "server-restart": "forever restart -o server.log -e server-err.log -a ./local_test_server/server.js",
-    "update": "git pull"
+    "update": "git pull",
+    "build-peer": "browserify Peer2.js -d --s Peer > local_test_server/src/app.js"
   },
   "author": "Zigridar",
   "license": "ISC",
@@ -28,5 +29,9 @@
     "simple-peer": "9.7.2",
     "socket.io": "2.3.0",
     "wrtc": "0.4.5"
+  },
+  "devDependencies": {
+    "browserify": "16.5.1",
+    "readable-stream": "3.6.0"
   }
 }
