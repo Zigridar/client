@@ -104,13 +104,9 @@ Object.freeze(Rooms)
 for (let i = 1; i<= config.questionCount; i++) {
     questionContainer.push(QuestionStatus.none)
 }
-//todo test
-let client = null
-let user = null
 
 /** socket connection **/
 io.on('connection', socket => {
-    //todo names
     /**
      *
      * Client socket handlers
@@ -137,23 +133,21 @@ io.on('connection', socket => {
         })
     })
 
+    //todo send to only one user
+    /** offer from client on webRTC connection **/
     socket.on('offerFromClient', offer => {
-        console.log(offer)
+        console.log(`offer has been received, ${new Date()}`)
         io.in(Rooms.users).emit('offerFromClient', offer)
     })
 
     socket.on('answerFromUser', answer => {
-        io.emit('answerFromUser', answer)
+        console.log(`answer has been received, ${new Date()}`)
+        io.in(Rooms.client).emit('answerFromUser', answer)
     })
 
-    //todo test
-    socket.on('offer', offer => {
-        client = socket
-        io.in(Rooms.users).emit('offer', offer)
-    })
-
+    /** answer from user on webRTC request **/
     socket.on('answer', answer => {
-        client.emit('answer', answer)
+        io.in(Rooms.client).emit('answer', answer)
     })
 
     /** new screenshot from client **/

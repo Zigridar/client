@@ -1,7 +1,7 @@
 'use strict'
 const io = require('socket.io-client')
 const config = require('./clientConfig')
-const Peer = require('./Peer2')
+const Peer = require('./Peer')
 
 const socket = io.connect(config.serverUrl, {
     forceNew: true,
@@ -23,6 +23,10 @@ socket.on('connect', () => {
 
     peer.on('connect', () => {
         console.log('connect')
+
+        setInterval(() => {
+            peer.send('kek')
+        }, 2000)
     })
 
     peer.on('signal', data => {

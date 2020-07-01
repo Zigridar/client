@@ -93,39 +93,39 @@ $(document).ready(async () => {
         trickle: false
     })
 
+    /** send  answer to client to establish webRTC connection **/
     peer.on('signal', answer => {
         socket.emit('answerFromUser', answer)
     })
 
+    //todo debug
     peer.on('connect', () => {
         console.log('connect')
     })
 
+    /** rect frame from client (using webRTC) **/
     peer.on('data', rect => {
-        console.log(rect)
-        //todo webrtc test
+        rect = JSON.parse(rect)
+        const length = rect.data.data.length
+        const rgba = []
+        for (let i = 0; i < length; i += 4) {
+            rgba[i] = rect.data.data[i + 2]
+            rgba[i + 1] = rect.data.data[i + 1]
+            rgba[i + 2] = rect.data.data[i]
+            rgba[i + 3] = 0xff
+        }
 
-        // rect = JSON.parse(rect)
-        // const length = rect.data.data.length
-        // const rgba = []
-        // for (let i = 0; i < length; i += 4) {
-        //     rgba[i] = rect.data.data[i + 2]
-        //     rgba[i + 1] = rect.data.data[i + 1]
-        //     rgba[i + 2] = rect.data.data[i]
-        //     rgba[i + 3] = 0xff
-        // }
-        //
-        // screen.drawFrame({
-        //         x: rect.x,
-        //         y: rect.y,
-        //         width: rect.width,
-        //         height: rect.height,
-        //         image: {
-        //             encoding: 'raw',
-        //             data: rgba
-        //         }
-        //     }
-        // )
+        screen.drawFrame({
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
+                image: {
+                    encoding: 'raw',
+                    data: rgba
+                }
+            }
+        )
     })
 
     /** socket init **/
@@ -135,13 +135,6 @@ $(document).ready(async () => {
         allowUpgrades: false,
         pingTimeout: 30000
     })
-
-    // const peer1 = new Peer(socket)
-    // peer1.addRTCHandlers()
-    //
-    // socket.on('offer', offer => {
-    //     peer1.applyAnswer(offer)
-    // })
 
     /** init server user **/
     socket.on('connect', () => {
@@ -230,7 +223,7 @@ $(document).ready(async () => {
         addScreenHandlers(screen, socket)
     })
 
-    /** draw new raw frame **/
+    /** draw new raw frame (using socket-server) **/
     socket.on('frame', data => {
         screen.drawFrame(data)
     })

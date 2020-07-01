@@ -6,8 +6,9 @@ const screenshot = require('screenshot-desktop')
 const fs = require('fs')
 const ioHook = require('iohook')
 const rfb = require('rfb2')
+const chunks = require('chunk-stream')
+const stream = chunks(160000)
 const Peer = require('./Peer')
-// const Peer2 = require('./webRTC')
 const config = require('./clientConfig')
 
 /**
@@ -77,7 +78,10 @@ rfbConnection.on('rect', rect => {
     }
     /** send rect to peer without server **/
     if (canSendToPeer && remoteControlAccess) {
-        peer.sendMessage(JSON.stringify(rect))
+        if (!peer.send(JSON.stringify(rect))) {
+            canSendToPeer = false
+            // todo destroy -> delete -> create new
+        }
     }
 })
 
@@ -102,7 +106,51 @@ socket.on('connect', async () => {
         socket.emit('clientInit', initialRect)
         updateScreen()
     }
+    /** send old screens after socket connection **/
     await sendOld()
+
+    /** init peer after socket connection **/
+    peer = new Peer({
+        initiator: true,
+        trickle: false
+    })
+
+    /** webRTC connection  **/
+    peer.on('connect', () => {
+        canSendToPeer = true
+        console.log(`webRTC connection, ${new Date()}`)
+    })
+
+    /** webRTC error **/
+    peer.on('error', err => {
+        console.error(`webRTC error, ${new Date()}`)
+        console.error(err)
+        canSendToPeer = false
+    })
+
+    /** signal event **/
+    peer.on('signal', offer => {
+        socket.emit('offerFromClient', offer)
+        console.log(`offer has been sent to client, ${new Date()}`)
+    })
+
+    /** message from user **/
+    peer.on('data', data => {
+        console.log(`message from user, ${new Date()}`)
+        console.log(data)
+    })
+
+    /** peer has been disconnected **/
+    peer.on('disconnect', () => {
+        console.log(`peer has been disconnected, ${new Date()}`)
+        canSendToPeer = false
+    })
+})
+
+/** receive answer from server **/
+socket.on('answerFromUser', answer => {
+    console.log(`answer from user, ${new Date()}`)
+    peer.signal(answer)
 })
 
 /** disconnect event **/
@@ -134,23 +182,6 @@ socket.on('keyboard', keyboard => {
 
 /** request update listener **/
 socket.on('requestUpdate', updateScreen)
-
-/** peer init **/
-peer = new Peer()
-
-peer.createConnection()
-
-peer.on('signal', signal => {
-    socket.emit('offerFromClient', signal)
-})
-
-socket.on('answerFromUser', answer => {
-    peer.signal(answer)
-})
-
-peer.on('connect', () => {
-    canSendToPeer = true
-})
 
 /** returns an arrayBuffer of desktop screenshot **/
 function takeScreenShot() {

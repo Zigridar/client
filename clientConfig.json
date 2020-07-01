@@ -1,8 +1,8 @@
 {
   "host": "localhost",
-  "port": 5900,
-  "password": "secret",
-  "serverUrl": "http://localhost:3000/",
+  "port": 5901,
+  "password": "safon1242",
+  "serverUrl": "http://localhost:8080/",
   "newScreenshotBtns": [16, 17],
   "answeredScreenshotBtns": [30, 31],
   "startControlBtns": [18, 19],
