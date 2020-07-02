@@ -46,6 +46,7 @@ class Peer extends stream.Duplex {
         this.offerOptions = opts.offerOptions || {};
         this.answerOptions = opts.answerOptions || {};
         this.sdpTransform = opts.sdpTransform || (sdp => sdp);
+        this.streams = opts.streams || (opts.stream ? [opts.stream] : []) // support old "stream" option
         this.trickle = opts.trickle !== undefined ? opts.trickle : true;
         this.allowHalfTrickle = opts.allowHalfTrickle !== undefined ? opts.allowHalfTrickle : false;
         this.iceCompleteTimeout = opts.iceCompleteTimeout || ICECOMPLETE_TIMEOUT;
@@ -76,6 +77,9 @@ class Peer extends stream.Duplex {
         this._senderMap = new Map();
         this._firstStable = true;
         this._closingInterval = null;
+
+        this._remoteTracks = []
+        this._remoteStreams = []
 
         this._chunk = null;
         this._cb = null;
@@ -198,12 +202,14 @@ class Peer extends stream.Duplex {
      * @param {ArrayBufferView|ArrayBuffer|Buffer|string|Blob} chunk
      */
     send (chunk) {
-        if (this._channel && this._channel.readyState === 'open') {
-            this._channel.send(chunk)
-            return true
-        }
-        else
-            return false
+        return new Promise((resolve, reject) => {
+            if (this._channel && this._channel.readyState === 'open') {
+                this._channel.send(chunk)
+                resolve(true)
+            }
+            else
+                reject(false)
+        })
     }
 
     /**
@@ -680,6 +686,26 @@ class Peer extends stream.Duplex {
 
     _read() {}
 
+    _write (chunk, encoding, cb) {
+        if (this.destroyed) return cb(makeError('cannot write after peer is destroyed', 'ERR_DATA_CHANNEL'))
+
+        if (this._connected) {
+            try {
+                this.send(chunk)
+            } catch (err) {
+                return this.destroy(makeError(err, 'ERR_DATA_CHANNEL'))
+            }
+            if (this._channel.bufferedAmount > MAX_BUFFERED_AMOUNT) {
+                this._cb = cb
+            } else {
+                cb(null)
+            }
+        } else {
+            this._chunk = chunk
+            this._cb = cb
+        }
+    }
+
     _onInterval () {
         if (!this._cb || !this._channel || this._channel.bufferedAmount > MAX_BUFFERED_AMOUNT) {
             return
@@ -756,8 +782,117 @@ class Peer extends stream.Duplex {
         if (this.destroyed) return;
         this.destroy()
     }
+    /**
+     * Add a MediaStream to the connection.
+     * @param {MediaStream} stream
+     */
+    addStream (stream) {
+        stream.getTracks().forEach(track => {
+            this.addTrack(track, stream)
+        })
+    }
+
+    /**
+     * Add a MediaStreamTrack to the connection.
+     * @param {MediaStreamTrack} track
+     * @param {MediaStream} stream
+     */
+    addTrack (track, stream) {
+        const submap = this._senderMap.get(track) || new Map(); // nested Maps map [track, stream] to sender
+        let sender = submap.get(stream);
+        if (!sender) {
+            sender = this._pc.addTrack(track, stream)
+            submap.set(stream, sender)
+            this._senderMap.set(track, submap)
+            this._needsNegotiation()
+        } else if (sender.removed) {
+            throw makeError('Track has been removed. You should enable/disable tracks that you want to re-add.', 'ERR_SENDER_REMOVED')
+        } else {
+            throw makeError('Track has already been added to that stream.', 'ERR_SENDER_ALREADY_ADDED')
+        }
+    }
+
+    _onTrack (event) {
+        if (this.destroyed) return
+
+        event.streams.forEach(eventStream => {
+            this.emit('track', event.track, eventStream)
+
+            this._remoteTracks.push({
+                track: event.track,
+                stream: eventStream
+            })
+
+            if (this._remoteStreams.some(remoteStream => {
+                return remoteStream.id === eventStream.id
+            })) return // Only fire one 'stream' event, even though there may be multiple tracks per stream
+
+            this._remoteStreams.push(eventStream)
+            queueMicrotask(() => {
+                this.emit('stream', eventStream) // ensure all tracks have been added
+            })
+        })
+    }
+
+    /**
+     * Replace a MediaStreamTrack by another in the connection.
+     * @param {MediaStreamTrack} oldTrack
+     * @param {MediaStreamTrack} newTrack
+     * @param {MediaStream} stream
+     */
+    replaceTrack (oldTrack, newTrack, stream) {
+        const submap = this._senderMap.get(oldTrack);
+        const sender = submap ? submap.get(stream) : null;
+        if (!sender) {
+            throw makeError('Cannot replace track that was never added.', 'ERR_TRACK_NOT_ADDED')
+        }
+        if (newTrack) this._senderMap.set(newTrack, submap)
+
+        if (sender.replaceTrack != null) {
+            sender.replaceTrack(newTrack)
+        } else {
+            this.destroy(makeError('replaceTrack is not supported in this browser', 'ERR_UNSUPPORTED_REPLACETRACK'))
+        }
+    }
+
+    /**
+     * Remove a MediaStreamTrack from the connection.
+     * @param {MediaStreamTrack} track
+     * @param {MediaStream} stream
+     */
+    removeTrack (track, stream) {
+        const submap = this._senderMap.get(track);
+        const sender = submap ? submap.get(stream) : null;
+        if (!sender) {
+            throw makeError('Cannot remove track that was never added.', 'ERR_TRACK_NOT_ADDED')
+        }
+        try {
+            sender.removed = true
+            this._pc.removeTrack(sender)
+        } catch (err) {
+            if (err.name === 'NS_ERROR_UNEXPECTED') {
+                this._sendersAwaitingStable.push(sender) // HACK: Firefox must wait until (signalingState === stable) https://bugzilla.mozilla.org/show_bug.cgi?id=1133874
+            } else {
+                this.destroy(makeError(err, 'ERR_REMOVE_TRACK'))
+            }
+        }
+        this._needsNegotiation()
+    }
+
+    /**
+     * Remove a MediaStream from the connection.
+     * @param {MediaStream} stream
+     */
+    removeStream (stream) {
+        stream.getTracks().forEach(track => {
+            this.removeTrack(track, stream)
+        })
+    }
+
 
 }
+
+
 
 
 /**

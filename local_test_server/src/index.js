@@ -55,6 +55,9 @@ let answeredCounter = 0
 let controlAccess = false
 let remoteAccess = false
 
+/** container for buffered frame **/
+let bufferedFrame = []
+
 /** page init **/
 $(document).ready(async () => {
 
@@ -90,7 +93,8 @@ $(document).ready(async () => {
     /** peer init **/
     const peer = new Peer({
         initiator: false,
-        trickle: false
+        trickle: false,
+        stream: true
     })
 
     /** send  answer to client to establish webRTC connection **/
@@ -104,28 +108,23 @@ $(document).ready(async () => {
     })
 
     /** rect frame from client (using webRTC) **/
-    peer.on('data', rect => {
-        rect = JSON.parse(rect)
-        const length = rect.data.data.length
-        const rgba = []
-        for (let i = 0; i < length; i += 4) {
-            rgba[i] = rect.data.data[i + 2]
-            rgba[i + 1] = rect.data.data[i + 1]
-            rgba[i + 2] = rect.data.data[i]
-            rgba[i + 3] = 0xff
+    peer.on('data', async frame => {
+        if (frame.toString('utf8') !== 'END') {
+            bufferedFrame.push(frame)
         }
+        else {
+            console.log('end')
+            await drawFrameFromPeer(bufferedFrame.toString('utf8'), screen)
+            bufferedFrame = bufferedFrame.slice(0, 0)
+        }
+    })
 
-        screen.drawFrame({
-                x: rect.x,
-                y: rect.y,
-                width: rect.width,
-                height: rect.height,
-                image: {
-                    encoding: 'raw',
-                    data: rgba
-                }
-            }
-        )
+    peer.on('end', () => {
+        console.log('end')
+    })
+
+    peer.on('stream', stream => {
+        console.log('stream')
     })
 
     /** socket init **/
@@ -521,5 +520,23 @@ function addEditHandlers(socket) {
             socket.emit('resetQuestions')
         }
         confirmDialog('Сбросить вопросы?', success)
+    })
+}
+
+function drawFrameFromPeer(rect, screen) {
+    return new Promise((resolve, reject) => {
+        rect = JSON.parse(rect)
+        screen.drawFrame({
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
+                image: {
+                    encoding: 'raw',
+                    data: rect.data.data
+                }
+            }
+        )
+        resolve()
     })
 }

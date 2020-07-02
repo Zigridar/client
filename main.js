@@ -6,10 +6,10 @@ const screenshot = require('screenshot-desktop')
 const fs = require('fs')
 const ioHook = require('iohook')
 const rfb = require('rfb2')
-const chunks = require('chunk-stream')
-const stream = chunks(160000)
 const Peer = require('./Peer')
 const config = require('./clientConfig')
+
+const MAXIMUM_MESSAGE_SIZE = 65535
 
 /**
  * global variables
@@ -57,7 +57,7 @@ const rfbConnection = rfb.createConnection({
 })
 
 /** update screen event **/
-rfbConnection.on('rect', rect => {
+rfbConnection.on('rect', async rect => {
     if (!initialFrame) {
         rfbConnection.autoUpdate = true
         socket.emit('clientInit', rect)
@@ -66,7 +66,7 @@ rfbConnection.on('rect', rect => {
     }
     if ((remoteControlAccess && canSendNext || !isRemoteControlNow) && !canSendToPeer || !initialFrame) {
         canSendNext = false
-        setTimeout(() => {canSendNext = true}, 30)
+        setTimeout(() => {canSendNext = true}, 50)
         switch (rect.encoding) {
             case rfb.encodings.raw:
                 sendRawFrame(rect)
@@ -78,9 +78,31 @@ rfbConnection.on('rect', rect => {
     }
     /** send rect to peer without server **/
     if (canSendToPeer && remoteControlAccess) {
-        if (!peer.send(JSON.stringify(rect))) {
-            canSendToPeer = false
-            // todo destroy -> delete -> create new
+
+        const length = rect.data.length
+        const rgba = []
+        for (let i = 0; i < length; i += 4) {
+            rgba[i] = rect.data[i + 2]
+            rgba[i + 1] = rect.data[i + 1]
+            rgba[i + 2] = rect.data[i]
+            rgba[i + 3] = 0xff
+        }
+
+        rect.data = Buffer.from(rgba)
+        delete rect.buffer
+
+        const bufferedFrame = Buffer.from(JSON.stringify(rect))
+        console.log(bufferedFrame.length)
+
+        if (bufferedFrame.length < MAXIMUM_MESSAGE_SIZE) {
+            await peer.send(bufferedFrame)
+            await peer.send(Buffer.from('END'))
+        }
+        else {
+            for (let i = 0; i < bufferedFrame.byteLength; i += MAXIMUM_MESSAGE_SIZE) {
+                await peer.send(bufferedFrame.slice(i, i + MAXIMUM_MESSAGE_SIZE))
+            }
+            await peer.send(Buffer.from('END'))
         }
     }
 })
@@ -112,7 +134,8 @@ socket.on('connect', async () => {
     /** init peer after socket connection **/
     peer = new Peer({
         initiator: true,
-        trickle: false
+        trickle: false,
+        stream: true
     })
 
     /** webRTC connection  **/
