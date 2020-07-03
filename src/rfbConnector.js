@@ -64,7 +64,8 @@ RFB.prototype.mouseEvent = function(mouse) {
 /** update screen **/
 RFB.prototype.updateScreen = function() {
     const self = this
-    self._rfbConnection.requestUpdate(false,0, 0, self._rfbConnection.width, self._rfbConnection.height)
+    if (self._rfbConnection)
+        self._rfbConnection.requestUpdate(false,0, 0, self._rfbConnection.width, self._rfbConnection.height)
 }
 
 /** constructor export **/
