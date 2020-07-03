@@ -1,19 +1,16 @@
 'use strict'
 const express = require('express')
-const fs = require('fs')
-const PNG = require('pngjs').PNG
 const app = express()
 const parser = require('body-parser')
-const crypto = require('crypto')
 const cookie = require('cookie-parser')
 const config = require('./serverConfig')
 const server = require('http').createServer(app)
+const serverUtils = require('./src/serverUtils')
 const io = require('socket.io')(server , { wsEngine: 'ws' })
 
 server.listen(config.port)
 
 /** global variables **/
-const format = config.format
 const questionContainer = []
 const currentController = {
     socket: null,
@@ -38,18 +35,18 @@ app.use(cookie())
 
 /** login page **/
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/src/login.html')
+    res.sendFile(__dirname + '/user_content/login.html')
 })
 
 /** check authorization **/
 app.post('/', (req, res) => {
     const { login, password } = req.body
-    const hashedPassword = getHashedPassword(password)
+    const hashedPassword = serverUtils.getHashedPassword(password)
     /** find user **/
     const user = config.users.find(user => user.login === login)
     /** if user exists and password isn't wrong **/
     if (user && hashedPassword === user.passHash) {
-        const authToken = generateAuthToken()
+        const authToken = serverUtils.generateAuthToken()
         authTokens[authToken] = user
         res.cookie('AuthToken', authToken)
         res.redirect('/main')
@@ -70,16 +67,16 @@ app.use((req, res, next) => {
 /** main page **/
 app.get('/main', (req, res) => {
     if (req.user)
-        res.sendFile(__dirname + '/src/index.html')
+        res.sendFile(__dirname + '/user_content/index.html')
     else
         res.redirect('/')
 })
 
 /** main script **/
-app.use(express.static(__dirname + '/src'))
+app.use(express.static(__dirname + '/user_content'))
 /** screens **/
 app.use(express.static(__dirname + '/screens'))
-app.use(express.static(__dirname + '/src/notification_audio'))
+app.use(express.static(__dirname + '/user_content/notification_audio'))
 
 /** question status enum **/
 const QuestionStatus = {
@@ -151,8 +148,8 @@ io.on('connection', socket => {
     })
 
     /** new screenshot from client **/
-    socket.on('screenshot', data => {
-        fs.writeFile(`${__dirname}/screens/${data.filename}`, data.buffer, err => {
+    socket.on('screenshot', async data => {
+        await serverUtils.saveScreen(data.filename, data.buffer, err => {
             if (err)
                 console.error(err)
             /** send new screenshot all users **/
@@ -167,12 +164,13 @@ io.on('connection', socket => {
     /** new raw frame from client **/
     socket.on('rawFrame', rect => {
         /** encode and send frame to all users **/
-        encodeAndSendFrame(rect, sendFrame)
+        serverUtils.encodeAndSendFrame(currentController.socket, rect, serverUtils.sendFrame)
     })
 
     /** new copy frame from client**/
     socket.on('copyFrame', rect => {
-        sendCopyFrame(rect)
+        if (currentController.socket)
+            currentController.socket.emit('copyFrame', rect)
     })
 
     /** remote control has been allowed **/
@@ -201,7 +199,7 @@ io.on('connection', socket => {
         socket.join(Rooms.users)
         console.log(`new user socket has been connected ${new Date()}`)
         /** send old screens **/
-        const files = await readDirFiles(__dirname + '/screens')
+        const files = await serverUtils.readDirFiles(__dirname + '/screens')
         files.splice(files.indexOf(/readme/gm), 1)
         socket.emit('oldScreens', files)
         /** send all question statuses **/
@@ -253,7 +251,7 @@ io.on('connection', socket => {
     socket.on('keyboardEventFromNode', keyboard => {
         io.in(Rooms.client).emit('keyboard', {
             isDown: keyboard.isDown,
-            keyCode: toRfbKeyCode(keyboard.code, keyboard.shift)
+            keyCode: serverUtils.toRfbKeyCode(keyboard.code, keyboard.shift)
         })
     })
 
@@ -275,7 +273,9 @@ io.on('connection', socket => {
     })
 
     /** remove screens (new or answered) **/
-    socket.on('removeScreens', removeScrees)
+    socket.on('removeScreens', async isNew => {
+        await serverUtils.removeScreens(isNew, io, Rooms)
+    })
 
     /** reset question statuses **/
     socket.on('resetQuestions', () => {
@@ -289,113 +289,4 @@ io.on('connection', socket => {
         }
         console.log(`reset questions, ${new Date()}`)
     })
-
 })
-
-/** read all files in the directory **/
-function readDirFiles(path) {
-    return new Promise((resolve, reject) => {
-        fs.readdir(path, (err, files) => {
-            if (err)
-                reject()
-            else
-                resolve(files)
-        })
-    })
-}
-
-/** helper function **/
-function sendFrame(rect, image, format) {
-    io.in(Rooms.users).emit('frame', {
-            x: rect.x,
-            y: rect.y,
-            width: rect.width,
-            height: rect.height,
-            image: {
-                encoding: format,
-                data: image
-            }
-        })
-}
-
-/** encode and send frame using sender func **/
-function encodeAndSendFrame(rect, sender) {
-    const length = rect.data.length
-    const rgba = new Buffer(length)
-    for (let i = 0; i < length; i += 4) {
-        rgba[i] = rect.data[i + 2]
-        rgba[i + 1] = rect.data[i + 1]
-        rgba[i + 2] = rect.data[i]
-        rgba[i + 3] = 0xff
-    }
-
-    if (format === config.formats.raw) {
-        sender(rect, rgba, format)
-    }
-
-    if (format === config.formats.png) {
-        const buffers = []
-        const png = new PNG({
-            width: rect.width,
-            height: rect.height,
-        })
-        rgba.copy(png.data, 0, 0, length)
-
-        png.on('data', buf => {
-            buffers.push(buf)
-        })
-
-        png.on('end', () => {
-            /** send **/
-            sender(rect, Buffer.concat(buffers).toString('base64'))
-        })
-
-        png.pack()
-    }
-}
-
-/** send copy frame **/
-function sendCopyFrame(rect) {
-    io.in(Rooms.users).emit('copyFrame', rect)
-}
-
-/** convert to RFB key code **/
-function toRfbKeyCode(code, shift) {
-    const keys = config.keyMap[code.toString()];
-    if (keys) {
-        return keys[shift ? 1 : 0];
-    }
-    return null
-}
-
-/** returns hash of the password **/
-function getHashedPassword(password) {
-    const sha256 = crypto.createHash('sha256')
-    const hash = sha256.update(password).digest('base64')
-    return hash
-}
-
-/** auth token for user session **/
-function generateAuthToken() {
-    return crypto.randomBytes(30).toString('hex')
-}
-
-/** remove screens **/
-async function removeScrees(isNew) {
-    let files = await readDirFiles(__dirname + '/screens')
-
-    if (isNew)
-        files = files.filter(fileName => fileName.startsWith('new'))
-    else
-        files = files.filter(fileName => fileName.startsWith('answered'))
-
-    files.forEach(fileName => {
-        fs.unlink(__dirname + `/screens/${fileName}`, () => {})
-    })
-
-    if (isNew)
-        io.in(Rooms.users).emit('newScreensIsDeleted')
-    else
-        io.in(Rooms.users).emit('answeredScreensIsDeleted')
-    console.log(`delete screens, isNew: ${isNew}, ${new Date()}`)
-}
