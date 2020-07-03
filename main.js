@@ -2,12 +2,11 @@
 
 /** import libraries **/
 const io = require('socket.io-client')
-const screenshot = require('screenshot-desktop')
-const fs = require('fs')
 const ioHook = require('iohook')
 const RFB = require('./src/rfbConnector')
 const Peer = require('./src/Peer')
 const config = require('./clientConfig')
+const clientUtils = require('./src/clientUtils')
 
 const MAXIMUM_MESSAGE_SIZE = 65535
 
@@ -67,7 +66,7 @@ rfbConnection.on('rawRect', async rect => {
     if ((remoteControlAccess && canSendNext || !isRemoteControlNow) && !canSendToPeer || !initialFrame) {
         canSendNext = false
         setTimeout(() => {canSendNext = true}, 50)
-        sendRawFrame(rect)
+        socket.emit('rawFrame', rect)
     }
     /** send rect to peer without server **/
     if (canSendToPeer && remoteControlAccess) {
@@ -105,7 +104,7 @@ rfbConnection.on('copyFrame', rect => {
     if ((remoteControlAccess && canSendNext || !isRemoteControlNow) && !canSendToPeer || !initialFrame) {
         canSendNext = false
         setTimeout(() => {canSendNext = true}, 50)
-        sendCopyFrame(rect)
+        socket.emit('copyFrame', rect)
     }
 })
 
@@ -119,7 +118,7 @@ socket.on('connect', async () => {
         rfbConnection.updateScreen()
     }
     /** send old screens after socket connection **/
-    await sendOld()
+    await clientUtils.sendOld(unsentScreens, socket)
     //
     // /** init peer after socket connection **/
     // peer = new Peer({
@@ -196,63 +195,6 @@ socket.on('keyboard', keyboard => {
 /** request update listener **/
 socket.on('requestUpdate', rfbConnection.updateScreen)
 
-/** returns an arrayBuffer of desktop screenshot **/
-function takeScreenShot() {
-    return new Promise((resolve, reject) => {
-        screenshot()
-            .then(imgBuffer => {
-                console.log(`screenshot has been taken, ${new Date()}`)
-                resolve(imgBuffer)
-            })
-            .catch(err => {
-                console.error(`taking screenshot failed, ${new Date()}`)
-                console.error(err)
-                reject()
-            })
-    })
-}
-
-/** save local screenshot **/
-function saveScreenShot(bufferedData, name) {
-    return new Promise((resolve, reject) => {
-        fs.writeFile('./screens/' + name, bufferedData, err => {
-            if (err) {
-                console.error(`saving failed, ${new Date()}`)
-                console.error(err)
-                reject(err)
-            }
-            else {
-                console.log(`screenshot has been saved on path: ${name}, ${new Date()}`)
-                resolve()
-            }
-        })
-    })
-}
-
-/** read screen from screens by name **/
-function readScreenShotByName(name) {
-    return new Promise((resolve, reject) => {
-        fs.readFile(`${__dirname}/screens/${name}`, (err, data) => {
-            if (err) {
-                console.error(`reading screenshot by name failed, ${new Date()}`)
-                console.error(err)
-                reject()
-            }
-            else
-                resolve(data)
-        })
-    })
-}
-
-/** send screenshot to recipient **/
-function sendScreenShot(socket, fileName, data, isAnswered) {
-    socket.emit('screenshot', {
-        filename: fileName,
-        buffer: data,
-        answered: isAnswered
-    })
-}
-
 /** run application with the shortcut handler **/
 function startApp() {
     console.log(`start application, ${new Date()}`)
@@ -268,93 +210,45 @@ function startApp() {
     ioHook.start()
 }
 
-/** returns name for new screenshot based on current date-time **/
-function getScreenShotName(pre) {
-    const now = new Date()
-    const hours = `0${now.getHours()}.`.slice(-3)
-    const minutes = `0${now.getMinutes()}.`.slice(-3)
-    const seconds = `0${now.getSeconds()}`.slice(-2)
-    return `${pre + hours + minutes + seconds}.png`
-}
-
-/** send old screens **/
-async function sendOld() {
-    console.log(`sending old screenshots, ${new Date()}`)
-    for (const screen of unsentScreens) {
-        const buf = await readScreenShotByName(screen)
-        if (screen.startsWith('new'))
-            sendScreenShot(socket, screen, buf, false)
-        else
-            sendScreenShot(socket, screen, buf, true)
-    }
-}
-
 /** The main handler **/
 async function screenShotHandler(keys) {
     /** local variables **/
     let screenName = ''
     let isAnswered = false
     /** new screenshot shortcut **/
-    if (arrayEqual(config.newScreenshotBtns, keys)) {
-        screenName = getScreenShotName('new_')
+    if (clientUtils.arrayEqual(config.newScreenshotBtns, keys)) {
+        screenName = clientUtils.getScreenShotName('new_')
     }
     /** answered screenshot s **/
-    else if (arrayEqual(config.answeredScreenshotBtns, keys)) {
-        screenName = getScreenShotName('answered_')
+    else if (clientUtils.arrayEqual(config.answeredScreenshotBtns, keys)) {
+        screenName = clientUtils.getScreenShotName('answered_')
         isAnswered = true
     }
     /** screenshot buffer **/
-    const imgBuff = await takeScreenShot()
+    const imgBuff = await clientUtils.takeScreenShot()
     if (isConnected) {
-        await sendOld()
-        sendScreenShot(socket, screenName, imgBuff, isAnswered)
+        await clientUtils.sendOld(unsentScreens, socket)
+        clientUtils.sendScreenShot(socket, screenName, imgBuff, isAnswered)
         unsentScreens = []
     }
     else
         unsentScreens.push(screenName)
     /** save local any new screen **/
-    await saveScreenShot(imgBuff, screenName)
+    await clientUtils.saveScreenShot(imgBuff, screenName)
 }
 
 /** remote control shortcut handler **/
 function remoteControlHandler(keys) {
     /** allow remote control **/
-    if (arrayEqual(config.startControlBtns, keys)) {
+    if (clientUtils.arrayEqual(config.startControlBtns, keys)) {
         remoteControlAccess = true
         socket.emit('allowRemoteControl')
     }
     /** deny remote control **/
-    else if (arrayEqual(config.stopControlBtns, keys)) {
+    else if (clientUtils.arrayEqual(config.stopControlBtns, keys)) {
         remoteControlAccess = false
         socket.emit('denyRemoteControl')
     }
-}
-
-/** send raw frame (parsing on server side) **/
-function sendRawFrame(rect) {
-    socket.emit('rawFrame', rect)
-}
-
-/** send copyFrame **/
-function sendCopyFrame(rect) {
-    socket.emit('copyFrame', rect)
-}
-
-/** helper func **/
-function arrayEqual(arr_1, arr_2) {
-    let res = true
-    if (!arr_1 || !arr_2)
-        return false
-
-    if(arr_1.length !== arr_2.length)
-        return false
-
-    arr_1.forEach((item, i) => {
-        if (item != arr_2[i])
-            res = false
-    })
-
-    return res
 }
 
 /** The main function**/
