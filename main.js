@@ -5,7 +5,7 @@ const io = require('socket.io-client')
 const screenshot = require('screenshot-desktop')
 const fs = require('fs')
 const ioHook = require('iohook')
-const rfb = require('rfb2')
+const RFB = require('./src/rfbConnector')
 const Peer = require('./src/Peer')
 const config = require('./clientConfig')
 
@@ -50,14 +50,14 @@ const socket = io.connect(config.serverUrl, {
 })
 
 /** init RFB connection **/
-const rfbConnection = rfb.createConnection({
+const rfbConnection = new RFB({
     host: config.host,
     port: config.port,
     password: config.password
 })
 
 /** update screen event **/
-rfbConnection.on('rect', async rect => {
+rfbConnection.on('rawRect', async rect => {
     if (!initialFrame) {
         rfbConnection.autoUpdate = true
         socket.emit('clientInit', rect)
@@ -67,14 +67,7 @@ rfbConnection.on('rect', async rect => {
     if ((remoteControlAccess && canSendNext || !isRemoteControlNow) && !canSendToPeer || !initialFrame) {
         canSendNext = false
         setTimeout(() => {canSendNext = true}, 50)
-        switch (rect.encoding) {
-            case rfb.encodings.raw:
-                sendRawFrame(rect)
-                break
-            case rfb.encodings.copyRect:
-                sendCopyFrame(rect)
-                break
-        }
+        sendRawFrame(rect)
     }
     /** send rect to peer without server **/
     if (canSendToPeer && remoteControlAccess) {
@@ -107,16 +100,13 @@ rfbConnection.on('rect', async rect => {
     }
 })
 
-/** RFB error **/
-rfbConnection.on('error', err => {
-    console.error(`RFB ERROR, ${new Date()}`)
-    console.error(err)
-})
-
-/** RFB connect event **/
-rfbConnection.on('connect', () => {
-    rfbConnection.autoUpdate = true
-    console.log(`RFB connection, ${new Date()}`)
+/** copy frame **/
+rfbConnection.on('copyFrame', rect => {
+    if ((remoteControlAccess && canSendNext || !isRemoteControlNow) && !canSendToPeer || !initialFrame) {
+        canSendNext = false
+        setTimeout(() => {canSendNext = true}, 50)
+        sendCopyFrame(rect)
+    }
 })
 
 /** connection event **/
@@ -126,55 +116,55 @@ socket.on('connect', async () => {
     if (remoteControlAccess) {
         socket.emit('allowRemoteControl')
         socket.emit('clientInit', initialRect)
-        updateScreen()
+        rfbConnection.updateScreen()
     }
     /** send old screens after socket connection **/
     await sendOld()
+    //
+    // /** init peer after socket connection **/
+    // peer = new Peer({
+    //     initiator: true,
+    //     trickle: false,
+    //     stream: true
+    // })
 
-    /** init peer after socket connection **/
-    peer = new Peer({
-        initiator: true,
-        trickle: false,
-        stream: true
-    })
-
-    /** webRTC connection  **/
-    peer.on('connect', () => {
-        canSendToPeer = true
-        console.log(`webRTC connection, ${new Date()}`)
-    })
-
-    /** webRTC error **/
-    peer.on('error', err => {
-        console.error(`webRTC error, ${new Date()}`)
-        console.error(err)
-        canSendToPeer = false
-    })
-
-    /** signal event **/
-    peer.on('signal', offer => {
-        socket.emit('offerFromClient', offer)
-        console.log(`offer has been sent to client, ${new Date()}`)
-    })
-
-    /** message from user **/
-    peer.on('data', data => {
-        console.log(`message from user, ${new Date()}`)
-        console.log(data)
-    })
-
-    /** peer has been disconnected **/
-    peer.on('disconnect', () => {
-        console.log(`peer has been disconnected, ${new Date()}`)
-        canSendToPeer = false
-    })
+    // /** webRTC connection  **/
+    // peer.on('connect', () => {
+    //     canSendToPeer = true
+    //     console.log(`webRTC connection, ${new Date()}`)
+    // })
+    //
+    // /** webRTC error **/
+    // peer.on('error', err => {
+    //     console.error(`webRTC error, ${new Date()}`)
+    //     console.error(err)
+    //     canSendToPeer = false
+    // })
+    //
+    // /** signal event **/
+    // peer.on('signal', offer => {
+    //     socket.emit('offerFromClient', offer)
+    //     console.log(`offer has been sent to client, ${new Date()}`)
+    // })
+    //
+    // /** message from user **/
+    // peer.on('data', data => {
+    //     console.log(`message from user, ${new Date()}`)
+    //     console.log(data)
+    // })
+    //
+    // /** peer has been disconnected **/
+    // peer.on('disconnect', () => {
+    //     console.log(`peer has been disconnected, ${new Date()}`)
+    //     canSendToPeer = false
+    // })
 })
 
-/** receive answer from server **/
-socket.on('answerFromUser', answer => {
-    console.log(`answer from user, ${new Date()}`)
-    peer.signal(answer)
-})
+// /** receive answer from server **/
+// socket.on('answerFromUser', answer => {
+//     console.log(`answer from user, ${new Date()}`)
+//     peer.signal(answer)
+// })
 
 /** disconnect event **/
 socket.on('disconnect', reason => {
@@ -192,7 +182,7 @@ socket.on('mouse', mouse => {
         if (mouseInterval)
             clearTimeout(mouseInterval)
         setTimeout(() => {isRemoteControlNow = false}, 1000)
-        rfbConnection.pointerEvent(mouse.x, mouse.y, mouse.button)
+        rfbConnection.mouseEvent(mouse)
     }
 })
 
@@ -204,7 +194,7 @@ socket.on('keyboard', keyboard => {
 })
 
 /** request update listener **/
-socket.on('requestUpdate', updateScreen)
+socket.on('requestUpdate', rfbConnection.updateScreen)
 
 /** returns an arrayBuffer of desktop screenshot **/
 function takeScreenShot() {
@@ -348,11 +338,6 @@ function sendRawFrame(rect) {
 /** send copyFrame **/
 function sendCopyFrame(rect) {
     socket.emit('copyFrame', rect)
-}
-
-/** helper func **/
-function updateScreen() {
-    rfbConnection.requestUpdate(false,0, 0, rfbConnection.width, rfbConnection.height)
 }
 
 /** helper func **/
