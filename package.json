@@ -12,7 +12,7 @@
     "server-stop": "forever stop ./local_test_server/server.js",
     "server-restart": "forever restart -o server.log -e server-err.log -a ./local_test_server/server.js",
     "update": "git pull",
-    "build-peer": "browserify Peer.js -d --s Peer > local_test_server/src/app.js"
+    "build-peer": "browserify src/Peer.js -d --s Peer > local_test_server/src/app.js"
   },
   "author": "Zigridar",
   "license": "ISC",

@@ -6,7 +6,7 @@ const screenshot = require('screenshot-desktop')
 const fs = require('fs')
 const ioHook = require('iohook')
 const rfb = require('rfb2')
-const Peer = require('./Peer')
+const Peer = require('./src/Peer')
 const config = require('./clientConfig')
 
 const MAXIMUM_MESSAGE_SIZE = 65535

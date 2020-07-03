@@ -1,7 +1,7 @@
 'use strict'
 const io = require('socket.io-client')
 const config = require('./clientConfig')
-const Peer = require('./Peer')
+const Peer = require('./src/Peer')
 
 const socket = io.connect(config.serverUrl, {
     forceNew: true,
