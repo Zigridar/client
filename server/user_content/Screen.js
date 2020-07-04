@@ -86,17 +86,17 @@ Screen.prototype._addHandlers = function() {
 
     /* mouse events */
     let state = 0;
-    this._canvas.addEventListener('mousedown', this._onmousedown = function(e) {
+    this._canvas.addEventListener('mousedown', self._onmousedown = function(e) {
         state = 1;
         self._event.emit('mouseEvent', self._toScreenX(e.pageX) , self._toScreenY(e.pageY), state)
         e.preventDefault();
     }, false);
-    this._canvas.addEventListener('mouseup', this._onmouseup = function (e) {
+    this._canvas.addEventListener('mouseup', self._onmouseup = function (e) {
         state = 0;
         self._event.emit('mouseEvent', self._toScreenX(e.pageX) , self._toScreenY(e.pageY), state)
         e.preventDefault();
     }, false);
-    this._canvas.addEventListener('mousemove', this._onmousemove = function (e) {
+    this._canvas.addEventListener('mousemove', self._onmousemove = function (e) {
         if (self.canMouseMove) {
             self.canMouseMove = false
             self._event.emit('mouseEvent', self._toScreenX(e.pageX) , self._toScreenY(e.pageY), state)
@@ -106,17 +106,17 @@ Screen.prototype._addHandlers = function() {
     });
 
     /* key events */
-    document.addEventListener('keydown', this._onkeydown = function (e) {
+    document.addEventListener('keydown', self._onkeydown = function (e) {
         self._event.emit('keyEvent', e.keyCode, e.shiftKey, 1)
         e.preventDefault();
     }, false);
-    document.addEventListener('keyup', this._onkeyup = function (e) {
+    document.addEventListener('keyup', self._onkeyup = function (e) {
         self._event.emit('keyEvent', e.keyCode, e.shiftKey, 0)
         e.preventDefault();
     }, false);
 
     /* window resize */
-    window.addEventListener('resize', this._scale);
+    window.addEventListener('resize', self._scale);
 };
 
 Screen.prototype.init = function(width, height){
@@ -127,14 +127,17 @@ Screen.prototype.init = function(width, height){
 }
 
 Screen.prototype.removeHandlers = function() {
-    if(!this._hasHandlers)
+
+    const self = this
+
+    if(!self._hasHandlers)
         return;
 
-    this._canvas.removeEventListener('mouseup', this._onmouseup);
-    this._canvas.removeEventListener('mousedown', this._onmousedown);
-    this._canvas.removeEventListener('mousemove', this._onmousemove);
-    document.removeEventListener('keydown', this._onkeydown);
-    document.removeEventListener('keyup', this._onkeyup);
-    window.removeEventListener('resize', this._scale)
-    this._hasHandlers = false;
+    self._canvas.removeEventListener('mouseup', self._onmouseup);
+    self._canvas.removeEventListener('mousedown', self._onmousedown);
+    self._canvas.removeEventListener('mousemove', self._onmousemove);
+    document.removeEventListener('keydown', self._onkeydown);
+    document.removeEventListener('keyup', self._onkeyup);
+    window.removeEventListener('resize', self._scale)
+    self._hasHandlers = false;
 };

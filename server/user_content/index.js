@@ -78,8 +78,7 @@ $(document).ready(async () => {
     })
 
     /** init frame **/
-    socket.on('initFrame', rect => {
-        screen.removeHandlers()
+    socket.once('initFrame', rect => {
         screen.init(rect.width, rect.height)
         addScreenHandlers(screen, socket)
     })
