@@ -188,7 +188,7 @@ socket.on('mouse', mouse => {
 /** keyboard control listener **/
 socket.on('keyboard', keyboard => {
     if (remoteControlAccess) {
-        rfbConnection.keyEvent(keyboard.keyCode, keyboard.isDown)
+        rfbConnection.keyEvent(keyboard)
     }
 })
 
