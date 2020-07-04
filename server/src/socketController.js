@@ -221,6 +221,11 @@ SocketController.prototype.init = function() {
             }
             console.log(`reset questions, ${new Date()}`)
         })
+
+        /** update screen handler **/
+        socket.on('requestUpdate', () => {
+            self.io.in(self.Rooms.client).emit('requestUpdate')
+        })
     })
 }
 

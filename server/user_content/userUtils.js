@@ -140,14 +140,17 @@ function addScreenHandlers(screen, socket) {
 }
 
 /** control button handler **/
-function controlBtnHandler(socket, controller) {
+function controlBtnHandler(socket, controller, refreshScreenBtn) {
     controlAccess = true
     controller.off('click')
+    refreshScreenBtn.off('click')
     controller.removeClass('scale-out')
     controller.addClass('scale-in')
     $('#control-icon').html('settings_remote')
     /** start **/
     controller.click(() => {
+        refreshScreenBtn.removeClass('scale-out')
+        refreshScreenBtn.addClass('scale-in')
         $('#page-content').css('display', 'none')
         $('#screen').css('display', 'block')
         socket.emit('startRemoteControl')
@@ -155,6 +158,15 @@ function controlBtnHandler(socket, controller) {
         $('#control-icon').html('stop')
         controller.off('click')
         playSound('on.mp3')
+
+        /** refresh screen before control **/
+        socket.emit('requestUpdate')
+
+        /** refresh remote screen **/
+        refreshScreenBtn.click(() => {
+            socket.emit('requestUpdate')
+        })
+
         /** stop **/
         controller.click(() => {
             $('#page-content').css('display', 'block')
@@ -163,9 +175,12 @@ function controlBtnHandler(socket, controller) {
             controller.removeClass('red accent-4')
             $('#control-icon').html('settings_remote')
             controller.off('click')
+            refreshScreenBtn.removeClass('scale-in')
+            refreshScreenBtn.addClass('scale-out')
+            refreshScreenBtn.off('click')
             playSound('off.mp3')
             /** recursive call **/
-            controlBtnHandler(socket, controller)
+            controlBtnHandler(socket, controller, refreshScreenBtn)
         })
     })
 }
@@ -304,14 +319,16 @@ function reloadGallery(gallery, options) {
     gallery.lightGallery(options)
 }
 
-function onStartRemoteControl(remoteController) {
+function onStartRemoteControl(remoteController, refreshScreenBtn) {
     controlAccess = false
     remoteController.addClass('scale-out')
     remoteController.removeClass('scale-in')
+    refreshScreenBtn.addClass('scale-out')
+    refreshScreenBtn.removeClass('scale-in')
     fireNotification('Удаленное управление пользователем', NotificationStatus.info)
 }
 
-function onDenyRemoteControl(remoteController) {
+function onDenyRemoteControl(remoteController, refreshScreenBtn) {
     if (remoteAccess) {
         remoteAccess = false
         controlAccess = false
@@ -319,16 +336,19 @@ function onDenyRemoteControl(remoteController) {
         $('#screen').css('display', 'none')
         remoteController.addClass('scale-out')
         remoteController.removeClass('scale-in')
+        refreshScreenBtn.addClass('scale-out')
+        refreshScreenBtn.removeClass('scale-in')
         remoteController.removeClass('red accent-4')
         remoteController.off('click')
+        refreshScreenBtn.off('click')
     }
 }
 
-function onAllowRemoteControl(socket, remoteController) {
+function onAllowRemoteControl(socket, remoteController, refreshScreenBtn) {
     if (!remoteAccess) {
         controlAccess = true
         remoteAccess = true
-        controlBtnHandler(socket, remoteController)
+        controlBtnHandler(socket, remoteController, refreshScreenBtn)
         fireNotification('Рарешен удаленный доступ', NotificationStatus.warning)
     }
 }

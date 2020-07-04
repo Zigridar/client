@@ -9,6 +9,7 @@ $(document).ready(async () => {
     const newCounterIcon = $('#new_counter')
     const answeredCounterIcon = $('#answered_counter')
     const remoteController = $('#remote-controller')
+    const refreshScreenBtn = $('#update-remote-screen')
     const clientStatus = $('#client-status')
     const clientStatusIcon = $('#client-status-icon')
     const userStatus = $('#user-status')
@@ -95,24 +96,24 @@ $(document).ready(async () => {
 
     /** allow remote control **/
     socket.on('allowRemoteControl', () => {
-        onAllowRemoteControl(socket, remoteController)
+        onAllowRemoteControl(socket, remoteController, refreshScreenBtn)
     })
 
     /** deny remote control **/
     socket.on('denyRemoteControl', () => {
-        onDenyRemoteControl(remoteController)
+        onDenyRemoteControl(remoteController, refreshScreenBtn)
     })
 
     /** other user has started remote control **/
     socket.on('startRemoteControl', () => {
-        onStartRemoteControl(remoteController)
+        onStartRemoteControl(remoteController, refreshScreenBtn)
     })
 
     /** other user has stoped remote control **/
     socket.on('stopRemoteControl', () => {
         controlAccess = true
         if (remoteAccess) {
-            controlBtnHandler(socket, remoteController)
+            controlBtnHandler(socket, remoteController, refreshScreenBtn)
         }
     })
 

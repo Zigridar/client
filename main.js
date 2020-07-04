@@ -58,7 +58,6 @@ const rfbConnection = new RFB({
 /** update screen event **/
 rfbConnection.on('rawRect', async rect => {
     if (!initialFrame) {
-        rfbConnection.autoUpdate = true
         socket.emit('clientInit', rect)
         initialFrame = true
         initialRect = rect
@@ -193,7 +192,9 @@ socket.on('keyboard', keyboard => {
 })
 
 /** request update listener **/
-socket.on('requestUpdate', rfbConnection.updateScreen)
+socket.on('requestUpdate', () => {
+    rfbConnection.updateScreen()
+})
 
 /** run application with the shortcut handler **/
 function startApp() {
