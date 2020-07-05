@@ -12,7 +12,8 @@
     "server-stop": "forever stop server/server.js",
     "server-restart": "forever restart -o server.log -e server-err.log -a server/server.js",
     "update": "git pull",
-    "build-peer": "browserify src/Peer.js -d --s Peer > server/user_content/app.js"
+    "build-peer": "browserify src/Peer.js -d --s Peer > server/user_content/app.js",
+    "build-buffer": "browserify src/Buffer-prebuilt.js -d --s Buffer > server/user_content/buffer.js"
   },
   "author": "Zigridar",
   "license": "ISC",

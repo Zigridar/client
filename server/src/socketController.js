@@ -73,7 +73,8 @@ SocketController.prototype.init = function() {
         /** offer from client on webRTC connection **/
         socket.on('offerFromClient', offer => {
             console.log(`offer has been received, ${new Date()}`)
-            self.currentUser.emit('offerFromClient', offer)
+            if (self.currentUser)
+                self.currentUser.emit('offerFromClient', offer)
         })
 
         socket.on('answerFromUser', answer => {
@@ -220,6 +221,12 @@ SocketController.prototype.init = function() {
                 })
             }
             console.log(`reset questions, ${new Date()}`)
+        })
+
+        /** new webRTC connection request **/
+        socket.on('peerRequest', () => {
+            if (self.controlAccess)
+                self.io.in(self.Rooms.client).emit('peerRequest')
         })
 
         /** update screen handler **/

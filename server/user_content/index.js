@@ -14,6 +14,8 @@ $(document).ready(async () => {
     const clientStatusIcon = $('#client-status-icon')
     const userStatus = $('#user-status')
     const userStatusIcon = $('#user-status-icon')
+    const rtcStatus = $('#rtc-status')
+    const rtcStatusIcon = $('#rtc-status-icon')
 
     /** screen init **/
     const screen = new Screen(document.getElementById('screen'))
@@ -77,7 +79,7 @@ $(document).ready(async () => {
         onQuestionChange(data)
     })
 
-    /** init frame **/
+    /** init frame (once!!!) **/
     socket.once('initFrame', rect => {
         screen.init(rect.width, rect.height)
         addScreenHandlers(screen, socket)
@@ -95,12 +97,12 @@ $(document).ready(async () => {
 
     /** allow remote control **/
     socket.on('allowRemoteControl', () => {
-        onAllowRemoteControl(socket, remoteController, refreshScreenBtn)
+        onAllowRemoteControl(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon)
     })
 
     /** deny remote control **/
     socket.on('denyRemoteControl', () => {
-        onDenyRemoteControl(remoteController, refreshScreenBtn)
+        onDenyRemoteControl(remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon)
     })
 
     /** other user has started remote control **/
@@ -112,7 +114,7 @@ $(document).ready(async () => {
     socket.on('stopRemoteControl', () => {
         controlAccess = true
         if (remoteAccess) {
-            controlBtnHandler(socket, remoteController, refreshScreenBtn)
+            controlBtnHandler(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon)
         }
     })
 
@@ -134,5 +136,11 @@ $(document).ready(async () => {
     /** client has been disconnected from server **/
     socket.on('clientHasBeenDisconnected', () => {
         onClientDisconnect(clientStatus, clientStatusIcon)
+    })
+
+    /** webRTC offer **/
+    socket.on('offerFromClient', offer => {
+        peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon)
+        console.log(`offer from server, ${new Date()}`)
     })
 })

@@ -15,6 +15,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/7.33.1/sweetalert2.all.js" integrity="sha256-BfIfo/K+ePw1iAn4BFfrfVXmXQPAmKtqeDwVIgCFqTU=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/EventEmitter/5.2.8/EventEmitter.js" integrity="sha256-8SVy0geRK3ehX9wmFkGq87U5G2V4zqdy1SAyc0yzyPI=" crossorigin="anonymous"></script>
     <script src="/app.js"></script>
+    <script src="/buffer.js"></script>
     <link rel="shortcut icon" href="/logo.png" type="image/png">
 </head>
 <body class="indigo lighten-5">
@@ -23,9 +24,10 @@
             <a class="brand-logo left">
                 <i id="logo" class="material-icons">visibility</i>
                 <i>Success Exam</i>
-                <ul class="left hide-on-med-and-down">
+                <ul class="left">
                     <a id="client-status" class="btn-floating btn-medium pulse red darken-3 tooltipped" data-position="bottom" data-tooltip="Соединение с клиентом"><i id="client-status-icon" class="material-icons" >report_problem</i></a>
                     <a id="user-status" class="btn-floating btn-medium pulse red darken-3 tooltipped" data-position="bottom" data-tooltip="Соединение с сервером"><i id="user-status-icon" class="material-icons" >report_problem</i></a>
+                    <a id="rtc-status" class="btn-floating btn-medium pulse red darken-3 tooltipped scale-transition scale-out" data-position="bottom" data-tooltip="webRTC соединение"><i id="rtc-status-icon" class="material-icons" >report_problem</i></a>
                 </ul>
                 <ul class="center">
                     <a id="remote-controller" class="btn-floating btn-large pulse scale-transition scale-out"><i id="control-icon" class="material-icons">settings_remote</i></a>

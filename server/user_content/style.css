@@ -67,6 +67,6 @@ body {
     -webkit-user-select: none;
 }
 
-#client-status, #user-status {
+#client-status, #user-status, #rtc-status {
     left: 300px;
 }

@@ -101,3 +101,8 @@ exports.arrayEqual = function(arr_1, arr_2) {
 
     return res
 }
+
+exports.canSendToPeer = function (isConnected, jsonData, maxDataSize) {
+    return isConnected &&
+        Buffer.from(JSON.stringify(jsonData), 'utf8').length < maxDataSize
+}

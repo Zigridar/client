@@ -7,8 +7,7 @@ const RFB = require('./src/rfbConnector')
 const Peer = require('./src/Peer')
 const config = require('./clientConfig')
 const clientUtils = require('./src/clientUtils')
-
-const MAXIMUM_MESSAGE_SIZE = 65535
+const MAXIMUM_MESSAGE_SIZE = 64000
 
 /**
  * global variables
@@ -22,7 +21,7 @@ let isConnected = false
 let unsentScreens = []
 
 /** check initial rbc connection initial stream **/
-let initialFrame = false
+let isInitialFrame = false
 let initialRect = null
 
 /** remote control permission **/
@@ -31,14 +30,11 @@ let remoteControlAccess = false
 /** can send next rect **/
 let canSendNext = true
 
-/** is remote control now? **/
-let isRemoteControlNow = false
-
 /** peer storage **/
 let peer = null
 
 /** can send to peer now **/
-let canSendToPeer = false
+let isPeerConnected = false
 
 /** init socket connection **/
 const socket = io.connect(config.serverUrl, {
@@ -57,18 +53,23 @@ const rfbConnection = new RFB({
 
 /** update screen event **/
 rfbConnection.on('rawRect', async rect => {
-    if (!initialFrame) {
+    delete rect.buffer
+    /** init client on server side **/
+    if (!isInitialFrame) {
         socket.emit('clientInit', rect)
-        initialFrame = true
+        isInitialFrame = true
         initialRect = rect
     }
-    if ((remoteControlAccess && canSendNext || !isRemoteControlNow) && !canSendToPeer || !initialFrame) {
+    /** size checking **/
+    const canSendFromPeer = clientUtils.canSendToPeer(isPeerConnected, rect, MAXIMUM_MESSAGE_SIZE)
+    /** send rect to user using socket-server **/
+    if (remoteControlAccess && canSendNext && !canSendFromPeer || !isInitialFrame) {
         canSendNext = false
         setTimeout(() => {canSendNext = true}, 50)
         socket.emit('rawFrame', rect)
     }
     /** send rect to peer without server **/
-    if (canSendToPeer && remoteControlAccess) {
+    else if (remoteControlAccess && canSendFromPeer) {
 
         const length = rect.data.length
         const rgba = []
@@ -78,29 +79,15 @@ rfbConnection.on('rawRect', async rect => {
             rgba[i + 2] = rect.data[i]
             rgba[i + 3] = 0xff
         }
-
         rect.data = Buffer.from(rgba)
-        delete rect.buffer
-
-        const bufferedFrame = Buffer.from(JSON.stringify(rect))
-        console.log(bufferedFrame.length)
-
-        if (bufferedFrame.length < MAXIMUM_MESSAGE_SIZE) {
-            await peer.send(bufferedFrame)
-            await peer.send(Buffer.from('END'))
-        }
-        else {
-            for (let i = 0; i < bufferedFrame.byteLength; i += MAXIMUM_MESSAGE_SIZE) {
-                await peer.send(bufferedFrame.slice(i, i + MAXIMUM_MESSAGE_SIZE))
-            }
-            await peer.send(Buffer.from('END'))
-        }
+        const bufferedFrame = Buffer.from(JSON.stringify(rect), 'utf8')
+        await peer.send(bufferedFrame)
     }
 })
 
 /** copy frame **/
 rfbConnection.on('copyFrame', rect => {
-    if ((remoteControlAccess && canSendNext || !isRemoteControlNow) && !canSendToPeer || !initialFrame) {
+    if ((remoteControlAccess && canSendNext) && !isPeerConnected || !isInitialFrame) {
         canSendNext = false
         setTimeout(() => {canSendNext = true}, 50)
         socket.emit('copyFrame', rect)
@@ -118,51 +105,20 @@ socket.on('connect', async () => {
     }
     /** send old screens after socket connection **/
     await clientUtils.sendOld(unsentScreens, socket)
-    //
-    // /** init peer after socket connection **/
-    // peer = new Peer({
-    //     initiator: true,
-    //     trickle: false,
-    //     stream: true
-    // })
-
-    // /** webRTC connection  **/
-    // peer.on('connect', () => {
-    //     canSendToPeer = true
-    //     console.log(`webRTC connection, ${new Date()}`)
-    // })
-    //
-    // /** webRTC error **/
-    // peer.on('error', err => {
-    //     console.error(`webRTC error, ${new Date()}`)
-    //     console.error(err)
-    //     canSendToPeer = false
-    // })
-    //
-    // /** signal event **/
-    // peer.on('signal', offer => {
-    //     socket.emit('offerFromClient', offer)
-    //     console.log(`offer has been sent to client, ${new Date()}`)
-    // })
-    //
-    // /** message from user **/
-    // peer.on('data', data => {
-    //     console.log(`message from user, ${new Date()}`)
-    //     console.log(data)
-    // })
-    //
-    // /** peer has been disconnected **/
-    // peer.on('disconnect', () => {
-    //     console.log(`peer has been disconnected, ${new Date()}`)
-    //     canSendToPeer = false
-    // })
 })
 
-// /** receive answer from server **/
-// socket.on('answerFromUser', answer => {
-//     console.log(`answer from user, ${new Date()}`)
-//     peer.signal(answer)
-// })
+/** receive answer from server **/
+socket.on('answerFromUser', answer => {
+    if (peer) {
+        peer.signal(answer)
+        console.log(`answer from user, ${new Date()}`)
+    }
+})
+
+socket.on('peerRequest', () => {
+    if (remoteControlAccess)
+        peerConnection()
+})
 
 /** disconnect event **/
 socket.on('disconnect', reason => {
@@ -171,15 +127,10 @@ socket.on('disconnect', reason => {
     isConnected = false
 })
 
-let mouseInterval = null
 
 /** mouse control listener **/
 socket.on('mouse', mouse => {
     if (remoteControlAccess) {
-        isRemoteControlNow = true
-        if (mouseInterval)
-            clearTimeout(mouseInterval)
-        setTimeout(() => {isRemoteControlNow = false}, 1000)
         rfbConnection.mouseEvent(mouse)
     }
 })
@@ -194,6 +145,16 @@ socket.on('keyboard', keyboard => {
 /** request update listener **/
 socket.on('requestUpdate', () => {
     rfbConnection.updateScreen()
+})
+
+/** start control **/
+socket.on('startRemoteControl', () => {
+    peerConnection()
+    console.log(`start remote control, ${new Date()}`)
+})
+socket.on('stopRemoteControl', () => {
+    console.log(`stop remote control, ${new Date()}`)
+    destroyPeer()
 })
 
 /** run application with the shortcut handler **/
@@ -239,7 +200,7 @@ async function screenShotHandler(keys) {
 }
 
 /** remote control shortcut handler **/
-function remoteControlHandler(keys) {
+async function remoteControlHandler(keys) {
     /** allow remote control **/
     if (clientUtils.arrayEqual(config.startControlBtns, keys)) {
         remoteControlAccess = true
@@ -249,6 +210,63 @@ function remoteControlHandler(keys) {
     else if (clientUtils.arrayEqual(config.stopControlBtns, keys)) {
         remoteControlAccess = false
         socket.emit('denyRemoteControl')
+        /** Close Peer connection **/
+        destroyPeer()
+    }
+}
+
+/** init Peer connection **/
+function peerConnection() {
+    /** create new peer connection **/
+    peer = new Peer({
+        trickle: false,
+        initiator: true
+    })
+
+    /** webRTC handlers **/
+    peer.on('signal', offer => {
+        socket.emit('offerFromClient', offer)
+        console.log(`offer has been sent to server, ${new Date()}`)
+    })
+    /** data from user **/
+    peer.on('data', data => {
+        /** parse data **/
+        data = JSON.parse(data.toString('utf8'))
+        switch (data.event) {
+            case 'mouse':
+                rfbConnection.mouseEvent(data)
+                break;
+            case 'keyboard':
+                rfbConnection.keyEvent(data)
+                break;
+        }
+    })
+
+    peer.on('connect', () => {
+        isPeerConnected = true
+        console.log(`webRTC connection, ${new Date()}`)
+    })
+    /** error handler **/
+    peer.on('error', error => {
+        destroyPeer()
+        console.error(`webRTC error, ${new Date()}`)
+        console.error(error)
+    })
+    /** peer has been disconnected **/
+    peer.on('disconnect', () => {
+        destroyPeer()
+        console.log(`peer has been disconnected, ${new Date()}`)
+    })
+    console.log(`init peer connection ${new Date()}`)
+}
+
+/** destroy peer connection **/
+function destroyPeer() {
+    isPeerConnected = false
+    if (peer) {
+        peer.destroy()
+        peer = null
+        console.log(`destroy peer, ${new Date()}`)
     }
 }
 
