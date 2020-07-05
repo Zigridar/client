@@ -6,6 +6,7 @@
  * **/
 const screenshot = require('screenshot-desktop')
 const fs = require('fs')
+const interfaces = require('os').networkInterfaces()
 
 /** returns an arrayBuffer of desktop screenshot **/
 exports.takeScreenShot = function() {
@@ -105,4 +106,12 @@ exports.arrayEqual = function(arr_1, arr_2) {
 exports.canSendToPeer = function (isConnected, jsonData, maxDataSize) {
     return isConnected &&
         Buffer.from(JSON.stringify(jsonData), 'utf8').length < maxDataSize
+}
+
+/** local IPv4 address for rfbConnector **/
+exports.localAddress = function () {
+    const res = Object.keys(interfaces).map(key => {
+        return interfaces[key].find(detail => !detail.internal && detail.family === 'IPv4')
+    }).filter(arr => arr)
+    return res[0].address
 }

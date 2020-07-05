@@ -1,5 +1,4 @@
 {
-  "host": "localhost",
   "port": 5901,
   "password": "safon1242",
   "serverUrl": "http://localhost:8080/",

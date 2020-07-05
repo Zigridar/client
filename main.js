@@ -46,7 +46,7 @@ const socket = io.connect(config.serverUrl, {
 
 /** init RFB connection **/
 const rfbConnection = new RFB({
-    host: config.host,
+    host: clientUtils.localAddress(),
     port: config.port,
     password: config.password
 })
