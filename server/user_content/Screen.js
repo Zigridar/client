@@ -25,26 +25,10 @@ function Screen(canvas) {
 
 Screen.prototype.drawFrame = function(rect) {
     const image = rect.image;
-    switch(image.encoding) {
-        case 'raw':
-            const imageData = this._context.createImageData(rect.width, rect.height);
-            imageData.data.set(new Uint8Array(image.data));
-            this._context.putImageData(imageData, rect.x, rect.y);
-            break;
-
-        case 'png':
-        case 'jpeg':
-            const img = new Image();
-            const self = this;
-            img.width = rect.width;
-            img.height = rect.height;
-            img.src = 'data:image/' + image.encoding + ';base64,' + rect.image.data;
-            img.onload = function () {
-                self._context.drawImage(img, rect.x, rect.y, rect.width, rect.height);
-            };
-            break;
-        default:
-            throw new Error('unknown rect encoding:', image.encoding);
+    if (image.encoding === 'raw') {
+        const imageData = this._context.createImageData(rect.width, rect.height);
+        imageData.data.set(new Uint8Array(image.data));
+        this._context.putImageData(imageData, rect.x, rect.y);
     }
 };
 

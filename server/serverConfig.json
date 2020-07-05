@@ -368,7 +368,6 @@
   },
   "format": "raw",
   "formats": {
-    "png": "png",
     "raw": "raw"
   },
   "questionCount": 150,

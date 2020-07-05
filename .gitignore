@@ -4,3 +4,5 @@
 /local_test_server/screens/*.png
 /client.log
 /client-err.log
+/server/user_content/peer.js
+/server/user_content/buffer.js
