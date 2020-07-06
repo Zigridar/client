@@ -7,7 +7,9 @@ const RFB = require('./src/rfbConnector')
 const Peer = require('./src/Peer')
 const config = require('./clientConfig')
 const clientUtils = require('./src/clientUtils')
-const MAXIMUM_MESSAGE_SIZE = 64000
+const toRfbKeyCode = require('./server/src/serverUtils').toRfbKeyCode
+const MAX_MESSAGE_SIZE = 64000
+const MAX_FRAME_COUNT = 50
 
 /**
  * global variables
@@ -36,6 +38,9 @@ let peer = null
 /** can send to peer now **/
 let isPeerConnected = false
 
+/** frame counter **/
+let frameCounter = 0
+
 /** init socket connection **/
 const socket = io.connect(config.serverUrl, {
     forceNew: true,
@@ -60,12 +65,18 @@ rfbConnection.on('rawRect', async rect => {
         isInitialFrame = true
         initialRect = rect
     }
+    /** unblock sending frame through socket-server **/
+    if (frameCounter === MAX_FRAME_COUNT) {
+        setTimeout(() => {
+            frameCounter = 0
+        }, 2000)
+    }
+
     /** size checking **/
-    const canSendFromPeer = clientUtils.canSendToPeer(isPeerConnected, rect, MAXIMUM_MESSAGE_SIZE)
+    const canSendFromPeer = clientUtils.canSendToPeer(isPeerConnected, rect, MAX_MESSAGE_SIZE)
     /** send rect to user using socket-server **/
-    if (remoteControlAccess && canSendNext && !canSendFromPeer || !isInitialFrame) {
-        canSendNext = false
-        setTimeout(() => {canSendNext = true}, 50)
+    if (remoteControlAccess && canSendNext && !canSendFromPeer && (frameCounter < MAX_FRAME_COUNT) || !isInitialFrame) {
+        frameCounter++
         socket.emit('rawFrame', rect)
     }
     /** send rect to peer without server **/
@@ -81,7 +92,10 @@ rfbConnection.on('rawRect', async rect => {
         }
         rect.data = Buffer.from(rgba)
         const bufferedFrame = Buffer.from(JSON.stringify(rect), 'utf8')
-        await peer.send(bufferedFrame)
+        const sentStatus = await peer.send(bufferedFrame)
+        /** if channel has been broken destroy peer connection **/
+        if (!sentStatus)
+            destroyPeer()
     }
 })
 
@@ -217,6 +231,7 @@ async function remoteControlHandler(keys) {
 
 /** init Peer connection **/
 function peerConnection() {
+    destroyPeer()
     /** create new peer connection **/
     peer = new Peer({
         trickle: false,
@@ -237,7 +252,10 @@ function peerConnection() {
                 rfbConnection.mouseEvent(data)
                 break;
             case 'keyboard':
-                rfbConnection.keyEvent(data)
+                rfbConnection.keyEvent({
+                    isDown: data.isDown,
+                    keyCode: toRfbKeyCode(data.code, data.shift)
+                })
                 break;
         }
     })
