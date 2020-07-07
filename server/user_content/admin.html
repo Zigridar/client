@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Success Exam</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/7.33.1/sweetalert2.min.css" integrity="sha256-/PVkO2+mUlKqE6wgKVXU5Wh4mx3vncHAxLEdpXrziGo=" crossorigin="anonymous" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/7.33.1/sweetalert2.all.js" integrity="sha256-BfIfo/K+ePw1iAn4BFfrfVXmXQPAmKtqeDwVIgCFqTU=" crossorigin="anonymous"></script>
+    <link rel="shortcut icon" href="/logo.png" type="image/png">
+</head>
+<body class="indigo lighten-5">
+    <nav>
+        <div class="nav-wrapper deep-purple darken-2">
+            <a class="brand-logo left">
+                <i id="logo" class="material-icons">visibility</i>
+                <i>Success Exam</i>
+                <ul class="left">
+                    <a id="user-status" class="btn-floating btn-medium pulse red darken-3 tooltipped" data-position="bottom" data-tooltip="Соединение с сервером"><i id="user-status-icon" class="material-icons" >report_problem</i></a>
+                </ul>
+            </a>
+        </div>
+    </nav>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/userUtils.js"></script>
+    <script src="/adminUtils.js"></script>
+    <script src="/index.js"></script>
+</body>
+</html>

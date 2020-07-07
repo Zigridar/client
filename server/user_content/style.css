@@ -70,3 +70,9 @@ body {
 #client-status, #user-status, #rtc-status {
     left: 300px;
 }
+
+#admin-btn {
+    position: absolute;
+    right: 10px;
+    top: 15px;
+}

@@ -51,7 +51,17 @@ app.use((req, res, next) => {
     const authToken = req.cookies['AuthToken']
     req.user = authTokens[authToken]
     next()
-});
+})
+
+/** admin page **/
+app.get('/admin', (req, res) => {
+
+    if (req.user && req.user.admin)
+        res.sendFile(__dirname  + '/user_content/admin.html')
+    else
+        res.redirect('/main')
+
+})
 
 /** main page **/
 app.get('/main', (req, res) => {
@@ -61,10 +71,11 @@ app.get('/main', (req, res) => {
         res.redirect('/')
 })
 
-/** main script **/
+/** user content **/
 app.use(express.static(__dirname + '/user_content'))
 /** screens **/
 app.use(express.static(__dirname + '/screens'))
+/** audio **/
 app.use(express.static(__dirname + '/user_content/notification_audio'))
 
 /** init socket controller **/
