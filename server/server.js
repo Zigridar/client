@@ -11,10 +11,13 @@ const io = require('socket.io')(server , { wsEngine: 'ws' })
 
 server.listen(config.port)
 
+/** init socket controller **/
+const socketController = new SocketController(io)
+
 /** global variables **/
 
 /** user container **/
-const authTokens = {};
+const authTokens = {}
 
 /** set body-parser to server **/
 app.use(parser.urlencoded({ extended: true }))
@@ -30,11 +33,10 @@ app.get('/', (req, res) => {
 /** check authorization **/
 app.post('/', (req, res) => {
     const { login, password } = req.body
-    const hashedPassword = serverUtils.getHashedPassword(password)
     /** find user **/
-    const user = config.users.find(user => user.login === login)
+    const user = socketController.users.find(user => user.login === login)
     /** if user exists and password isn't wrong **/
-    if (user && hashedPassword === user.passHash) {
+    if (serverUtils.validateServerUser(user, password)) {
         const authToken = serverUtils.generateAuthToken()
         authTokens[authToken] = user
         res.cookie('AuthToken', authToken)
@@ -47,6 +49,7 @@ app.post('/', (req, res) => {
     }
 })
 
+/** set authToken **/
 app.use((req, res, next) => {
     const authToken = req.cookies['AuthToken']
     req.user = authTokens[authToken]
@@ -56,7 +59,7 @@ app.use((req, res, next) => {
 /** admin page **/
 app.get('/admin', (req, res) => {
 
-    if (req.user && req.user.admin)
+    if (req.user && req.user.adminAccess)
         res.sendFile(__dirname  + '/user_content/admin.html')
     else
         res.redirect('/main')
@@ -77,6 +80,3 @@ app.use(express.static(__dirname + '/user_content'))
 app.use(express.static(__dirname + '/screens'))
 /** audio **/
 app.use(express.static(__dirname + '/user_content/notification_audio'))
-
-/** init socket controller **/
-const socketController = new SocketController(io)

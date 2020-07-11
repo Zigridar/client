@@ -120,3 +120,21 @@ exports.saveUsers = function(users) {
         })
     })
 }
+
+/** parse date **/
+exports.parseDate = function(dateStr) {
+    const dateArr = dateStr.split('.')
+    dateArr[1] = (parseInt(dateArr[1], 10) - 1).toString(10)
+    return new Date(dateArr[2], dateArr[1], dateArr[0])
+}
+
+/** validate user **/
+exports.validateServerUser = function(user, password) {
+    if (!user)
+        return false
+    const pass = (user.password === password)
+    const beginDate = (exports.parseDate(user.beginDate).getTime() < (new Date()).getTime())
+    const endDate = (exports.parseDate(user.endDate).getTime() > (new Date()).getTime())
+    const access = user.userAccess || user.adminAccess
+    return pass && beginDate && endDate && access
+}

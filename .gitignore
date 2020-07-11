@@ -6,3 +6,4 @@
 /client-err.log
 /server/user_content/peer.js
 /server/user_content/buffer.js
+/server/users.json

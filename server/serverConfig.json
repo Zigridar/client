@@ -371,13 +371,5 @@
     "raw": "raw"
   },
   "questionCount": 150,
-  "port": 8080,
-  "users": [
-    {
-      "login": "cholakh",
-      "passHash": "yvd/CkeaxUBtQ6Wiv21KRQOSXkWX8ODjgpmfo77Andg=",
-      "name": "Seif",
-      "admin": true
-    }
-  ]
+  "port": 8080
 }
