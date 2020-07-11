@@ -85,30 +85,6 @@ function drawFrameFromPeer(rect, screen) {
     })
 }
 
-/** add handler to edit buttons **/
-function addEditHandlers(socket) {
-    $('#deleteNew').click(() => {
-        const success = () => {
-            socket.emit('removeScreens', true)
-        }
-        confirmDialog('Удалить все новые скрины?', success)
-    })
-
-    $('#deleteAnswered').click(() => {
-        const success = () => {
-            socket.emit('removeScreens', false)
-        }
-        confirmDialog('Удалить все отвеченные скрины?', success)
-    })
-    /** reset questions **/
-    $('#resetQuestions').click(() => {
-        const success = () => {
-            socket.emit('resetQuestions')
-        }
-        confirmDialog('Сбросить вопросы?', success)
-    })
-}
-
 /** create confirm dialog **/
 function confirmDialog(text, ok, cancel) {
     Swal.fire({
@@ -126,6 +102,14 @@ function confirmDialog(text, ok, cancel) {
             cancel()
     })
 }
+
+/** fire error dialog **/
+function errorDialog(text) {
+    Swal.fire({
+        title: text,
+    })
+}
+
 /** add screen handlers to screen **/
 function addScreenHandlers(screen, socket) {
     /** screen mouse handler **/
@@ -430,7 +414,8 @@ function onSocketDisconnect(userStatus, userStatusIcon, clientStatus, clientStat
     userStatus.removeClass('light-green')
     userStatus.addClass('red')
     userStatusIcon.html('report_problem')
-    onClientDisconnect(clientStatus, clientStatusIcon)
+    if (clientStatus && clientStatusIcon)
+        onClientDisconnect(clientStatus, clientStatusIcon)
 }
 
 function onSocketConnect(userStatus, userStatusIcon) {
@@ -471,8 +456,6 @@ async function initPage(
         direction: 'bottom',
         hoverEnabled: false
     })
-    /** add edit button handlers **/
-    addEditHandlers(socket)
 }
 
 /**

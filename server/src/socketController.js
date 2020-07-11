@@ -27,6 +27,7 @@ function SocketController(io) {
         client: 'client',
         users: 'users'
     }
+    this.users = null
     this.initQuestionContainer()
     this.init()
 }
@@ -39,8 +40,27 @@ SocketController.prototype.initQuestionContainer = function() {
     }
 }
 
-SocketController.prototype.init = function() {
+/** save users **/
+SocketController.prototype.saveUsers = async function() {
     const self = this
+    await serverUtils.saveUsers(self.users)
+}
+
+/** get next user id **/
+SocketController.prototype.getNextUserId = function() {
+    const self = this
+    if (self.users.length === 0)
+        return 1
+    else {
+        return self.users[self.users.length - 1].id + 1
+    }
+}
+
+SocketController.prototype.init = async function() {
+    const self = this
+
+    /** load users **/
+    self.users = (await serverUtils.loadUsers()).users
 
     /** socket connection **/
     self.io.on('connection', socket => {
@@ -205,7 +225,71 @@ SocketController.prototype.init = function() {
             console.log(`stop remote control, ${new Date()}`)
         })
 
+        /** new webRTC connection request **/
+        socket.on('peerRequest', () => {
+            if (self.controlAccess)
+                self.io.in(self.Rooms.client).emit('peerRequest')
+        })
+
+        /** update screen handler **/
+        socket.on('requestUpdate', () => {
+            self.io.in(self.Rooms.client).emit('requestUpdate')
+        })
+
+        /**
+         *
+         * Admin socket handlers
+         *
+         * **/
         /** remove screens (new or answered) **/
+
+        /** init admin **/
+        socket.on('admin', () => {
+            self.users.forEach(user => {
+                socket.emit('userForAdmin', user)
+            })
+        })
+
+        /** add/edit user **/
+        socket.on('addUser', async user => {
+            if (user.id) {
+                const userForEdit = self.users.find(baseUser => baseUser.id === user.id)
+                userForEdit.firstName = user.firstName
+                userForEdit.lastName = user.lastName
+                userForEdit.login = user.login
+                userForEdit.password = user.password
+                userForEdit.beginDate = user.beginDate
+                userForEdit.endDate = user.endDate
+                userForEdit.token = user.token
+                userForEdit.userAccess = user.userAccess
+                userForEdit.adminAccess = user.adminAccess
+                await self.saveUsers()
+                console.log(`edit user, user id: ${user.id}`)
+                socket.emit('editUser', user)
+            }
+            else {
+                user.id = self.getNextUserId()
+                self.users.push(user)
+                await self.saveUsers()
+                console.log(`add user: ${user.login}, ${new Date()}`)
+                socket.emit('addUser', user)
+            }
+        })
+
+        /** delete user **/
+        socket.on('deleteUser', async userId => {
+            const userForDelete = self.users.find(user => user.id === userId)
+            if (userForDelete) {
+                const indexForDelete = self.users.indexOf(userForDelete)
+                self.users.splice(indexForDelete, 1)
+                await self.saveUsers()
+                console.log(`delete user ${userForDelete.firstName} ${userForDelete.lastName}, ${new Date()}`)
+                socket.emit('deleteUser', userId)
+            }
+        })
+
+        //todo
+        /** remove screens handler **/
         socket.on('removeScreens', async isNew => {
             await serverUtils.removeScreens(isNew, self.io, self.Rooms)
         })
@@ -223,16 +307,6 @@ SocketController.prototype.init = function() {
             console.log(`reset questions, ${new Date()}`)
         })
 
-        /** new webRTC connection request **/
-        socket.on('peerRequest', () => {
-            if (self.controlAccess)
-                self.io.in(self.Rooms.client).emit('peerRequest')
-        })
-
-        /** update screen handler **/
-        socket.on('requestUpdate', () => {
-            self.io.in(self.Rooms.client).emit('requestUpdate')
-        })
     })
 }
 

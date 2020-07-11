@@ -89,3 +89,34 @@ exports.getHashedPassword = function(password) {
 exports.saveScreen = async function(fileName, data, callback) {
     fs.writeFile(`${__dirname}/../screens/${fileName}`, data, callback)
 }
+
+/** load users from users.json **/
+exports.loadUsers = function() {
+    return new Promise((resolve, reject) => {
+        fs.readFile(__dirname + `/../users.json`, (err, data) => {
+            if (err) {
+                const newUsers = {users: []}
+                fs.writeFile(__dirname + `/../users.json`, JSON.stringify(newUsers), _err => {
+                    if (_err)
+                        reject({users: []})
+                    else
+                        resolve(newUsers)
+                })
+            }
+            else
+                resolve(JSON.parse(data))
+        })
+    })
+}
+
+/** save users JSON **/
+exports.saveUsers = function(users) {
+    return new Promise(async (resolve, reject) => {
+        fs.writeFile(__dirname + '/../users.json', JSON.stringify({users: users}), err => {
+            if (err)
+                reject()
+            else
+                resolve()
+        })
+    })
+}
