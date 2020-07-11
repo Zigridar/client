@@ -7,6 +7,12 @@ $(document).ready(async () => {
     const userStatus = $('#user-status')
     const userStatusIcon = $('#user-status-icon')
     const exitBtn = $('#exit-btn')
+    const userTableBody = $('#users-col')
+    const tokenTableBody = $('#token-col')
+    const galleryNew = $("#lightgallery_new")
+    const galleryOld = $("#lightgallery_old")
+    const deleteNewBtn = $('#delete-new')
+    const deleteOldBtn = $('#delete-old')
 
     /** edit user variables **/
     const userCard = {
@@ -24,8 +30,6 @@ $(document).ready(async () => {
         deleteBtn: $('#delete-btn'),
         clearBtn: $('#clear-btn')
     }
-
-    const tableBody = $('#users-col')
 
     /** socket init **/
     const socket = await io.connect({
@@ -49,7 +53,7 @@ $(document).ready(async () => {
 
     /** add user **/
     socket.on('addUser', user => {
-        addUserToCol(user, tableBody, userCard, socket)
+        addUserToCol(user, userTableBody, userCard, socket)
     })
 
     socket.on('editUser', user => {
@@ -63,9 +67,34 @@ $(document).ready(async () => {
 
     /** receive user from server **/
     socket.on('userForAdmin', user => {
-        addUserToCol(user, tableBody, userCard, socket)
+        addUserToCol(user, userTableBody, userCard, socket)
+    })
+
+    /** new token **/
+    socket.on('newToken', token => {
+        addTokenToCol(token, tokenTableBody, socket, galleryNew, galleryOld)
+    })
+
+    /** get screens for selected token **/
+    socket.on('screensForToken', (files, token) => {
+        files.forEach(item => {
+            if (item.startsWith('new')){
+                addNewScreen(`/${item}`, token, galleryNew)
+            }
+            else {
+                addOldScreen(`/${item}`, token, galleryOld)
+            }
+        })
+
+        addDeleteBtnHandlers(deleteNewBtn, deleteOldBtn, token, socket, galleryNew, galleryOld)
     })
 
     /** init page **/
-    initAdminPage(userCard, exitBtn, socket)
+    initAdminPage(
+        userCard,
+        exitBtn,
+        galleryNew,
+        galleryOld,
+        socket
+    )
 })

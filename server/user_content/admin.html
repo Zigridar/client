@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery@1.7.0/dist/js/lightgallery-all.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@1.7.0/src/css/lightgallery.css">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/7.33.1/sweetalert2.min.css" integrity="sha256-/PVkO2+mUlKqE6wgKVXU5Wh4mx3vncHAxLEdpXrziGo=" crossorigin="anonymous" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/7.33.1/sweetalert2.all.js" integrity="sha256-BfIfo/K+ePw1iAn4BFfrfVXmXQPAmKtqeDwVIgCFqTU=" crossorigin="anonymous"></script>
@@ -126,13 +128,57 @@
                 </div>
             </div>
             </div>
-<!--        log-tab-->
+<!--        screen-tab-->
         <div id="screen-tab" class="col s12">
-            <div class="container">
-                <div class="row"></div>
+            <div class="row">
+                <div class="col s3">
+                    <div class="card-panel">
+                        <table class="highlight">
+                            <thead>
+                            <tr>
+                                <th>Token</th>
+                            </tr>
+                            </thead>
+
+                            <tbody id="token-col">
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col s9">
+                    <div class="row">
+                        <div class="col s6">
+                            <div class="card">
+                                <div class="card-action deep-purple">
+                                    <a>new screens</a>
+                                    <a id="delete-new" class="waves-effect waves-light btn-small btn-floating right red"><i class="material-icons left">delete</i></a>
+                                </div>
+                                <div class="card-content indigo lighten-4" id="screencontent_new">
+                                    <div id="lightgallery_new">
+                                        <!--                        screens container-->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col s6">
+                            <div class="card">
+                                <div class="card-action deep-purple">
+                                    <a>answered screens</a>
+                                    <a id="delete-old" class="waves-effect waves-light btn-small btn-floating right red"><i class="material-icons left">delete</i></a>
+                                </div>
+                                <div class="card-content indigo lighten-4" id="screencontent_old">
+                                    <div id="lightgallery_old">
+                                        <!--                        screens container-->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <!--        screen-tab-->
+<!--        log-tab-->
         <div id="log-tab" class="col s12">
             <div class="container">
                 <div class="row"></div>

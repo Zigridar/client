@@ -9,7 +9,13 @@ const datePickerOptions = {
 const datePattern = /\d{2}\.\d{2}\.\d{4}/
 
 /** init admin page **/
-function initAdminPage(userCard, exitBtn, socket) {
+function initAdminPage(
+    userCard,
+    exitBtn,
+    galleryNew,
+    galleryOld,
+    socket
+) {
     $('.tabs').tabs()
     $('.datepicker').datepicker(datePickerOptions)
     $('.tooltipped').tooltip()
@@ -18,6 +24,10 @@ function initAdminPage(userCard, exitBtn, socket) {
     exitBtn.click(() => {
         exitButtonHandler(socket)
     })
+    /** gallery init **/
+    galleryNew.lightGallery(galleryOptions_new)
+    galleryOld.lightGallery(galleryOptions_old)
+
 }
 
 /** init user form **/
@@ -197,26 +207,45 @@ function updateUser(user) {
     $(`#user-container-${user.id}`).html(JSON.stringify(user))
 }
 
-/** add handler to edit buttons **/
-function addEditHandlers(socket) {
-    $('#deleteNew').click(() => {
+/** add new token to col **/
+function addTokenToCol(token, tokenTableBody, socket, galleryNew, galleryOld) {
+    const row =
+        `
+        <tr id="token-${token}">
+            <td>${token}</td>
+        </tr>
+        `
+    tokenTableBody.prepend(row)
+
+    $(`#token-${token}`).dblclick(() => {
+        /** reset gallery **/
+        galleryNew.html('')
+        galleryOld.html('')
+        socket.emit('requestScreenForToken', token)
+    })
+}
+
+/** delete button handlers **/
+function addDeleteBtnHandlers(deleteNewBtn, deleteOldBtn, token, socket, galleryNew, galleryOld) {
+    /** reset handlers **/
+    deleteNewBtn.off()
+    deleteOldBtn.off()
+
+    /** for new **/
+    deleteNewBtn.click(() => {
         const success = () => {
-            socket.emit('removeScreens', true)
+            socket.emit('deleteNewForToken', token)
+            galleryNew.html('')
         }
-        confirmDialog('Удалить все новые скрины?', success)
+        confirmDialog(`Do you really want to delete all new screens for token ${token}?`, success)
     })
 
-    $('#deleteAnswered').click(() => {
+    /** for old **/
+    deleteOldBtn.click(() => {
         const success = () => {
-            socket.emit('removeScreens', false)
+            socket.emit('deleteOldForToken', token)
+            galleryOld.html('')
         }
-        confirmDialog('Удалить все отвеченные скрины?', success)
-    })
-    /** reset questions **/
-    $('#resetQuestions').click(() => {
-        const success = () => {
-            socket.emit('resetQuestions')
-        }
-        confirmDialog('Сбросить вопросы?', success)
+        confirmDialog(`Do you really want to delete all answered screens for token ${token}?`, success)
     })
 }

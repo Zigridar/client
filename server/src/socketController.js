@@ -42,7 +42,7 @@ SocketController.prototype.getNextUserId = function() {
 }
 
 /** update team and token containers for new/updated user **/
-SocketController.prototype.updateToken = function(token) {
+SocketController.prototype.updateToken = function(token, socket) {
     const self = this
     /** if token does not exist in token Set **/
     if (!self.tokens.has(token)) {
@@ -66,6 +66,8 @@ SocketController.prototype.updateToken = function(token) {
         }
         /** init folder for new token **/
         serverUtils.initDirForToken(token)
+        /** send new token to admin **/
+        socket.emit('newToken', token)
     }
 }
 
@@ -337,6 +339,31 @@ SocketController.prototype.init = async function() {
             socket.on('exit', () => {
                 delete self.authTokens[cookies]
             })
+
+            /** request for screens **/
+            socket.on('requestScreenForToken', async token => {
+                const files = await serverUtils.readDirFiles(__dirname + `/../screens/${token}`)
+                socket.emit('screensForToken', files, token)
+            })
+
+            /** delete new handler **/
+            socket.on('deleteNewForToken', token => {
+                const teamConfig = self.teams.get(token)
+                if (teamConfig)
+                    serverUtils.removeScreens(true, teamConfig.rooms.user, token, socket)
+            })
+
+            /** delete old handler **/
+            socket.on('deleteOldForToken', token => {
+                const teamConfig = self.teams.get(token)
+                if (teamConfig)
+                    serverUtils.removeScreens(false, teamConfig.rooms.user, token, socket)
+            })
+
+            /** send all tokens **/
+            self.tokens.forEach(token => {
+                socket.emit('newToken', token)
+            })
         })
 
         /** add/edit user **/
@@ -366,7 +393,7 @@ SocketController.prototype.init = async function() {
                 socket.emit('addUser', user)
             }
             /** update token **/
-            self.updateToken(user.token)
+            self.updateToken(user.token, socket)
         })
 
         /** delete user **/

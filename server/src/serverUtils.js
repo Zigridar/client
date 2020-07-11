@@ -4,7 +4,7 @@ const fs = require('fs')
 const config = require('../serverConfig')
 
 /** remove screens **/
-exports.removeScreens =  async function(isNew, io, token) {
+exports.removeScreens =  async function(isNew, room, token, socket) {
     let files = await exports.readDirFiles(__dirname + `/../screens/${token}`)
 
     if (isNew)
@@ -17,9 +17,9 @@ exports.removeScreens =  async function(isNew, io, token) {
     })
 
     if (isNew)
-        io.in(token + '-u').emit('newScreensIsDeleted')
+        socket.to(room).emit('newScreensIsDeleted')
     else
-        io.in(token + '-u').emit('answeredScreensIsDeleted')
+        socket.to(room).emit('answeredScreensIsDeleted')
     console.log(`delete screens, isNew: ${isNew}, token: ${token}, ${new Date()}`)
 }
 
