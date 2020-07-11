@@ -14,11 +14,6 @@ server.listen(config.port)
 /** init socket controller **/
 const socketController = new SocketController(io)
 
-/** global variables **/
-
-/** user container **/
-const authTokens = {}
-
 /** set body-parser to server **/
 app.use(parser.urlencoded({ extended: true }))
 
@@ -38,7 +33,7 @@ app.post('/', (req, res) => {
     /** if user exists and password isn't wrong **/
     if (serverUtils.validateServerUser(user, password)) {
         const authToken = serverUtils.generateAuthToken()
-        authTokens[authToken] = user
+        socketController.authTokens[authToken] = user
         res.cookie('AuthToken', authToken)
         res.redirect('/main')
         console.log(`user ${user.login} has authorized, ${new Date()}`)
@@ -52,7 +47,7 @@ app.post('/', (req, res) => {
 /** set authToken **/
 app.use((req, res, next) => {
     const authToken = req.cookies['AuthToken']
-    req.user = authTokens[authToken]
+    req.user = socketController.authTokens[authToken]
     next()
 })
 

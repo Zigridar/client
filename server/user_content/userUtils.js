@@ -111,7 +111,7 @@ function errorDialog(text) {
 }
 
 /** add screen handlers to screen **/
-function addScreenHandlers(screen, socket) {
+function addScreenHandlers(screen, socket, token) {
     /** screen mouse handler **/
     screen.on('mouseEvent', (x, y, button) => {
         if (isPeerConnected) {
@@ -127,7 +127,7 @@ function addScreenHandlers(screen, socket) {
                 x: x,
                 y: y,
                 button: button
-            })
+            }, token)
         }
     })
 
@@ -146,13 +146,13 @@ function addScreenHandlers(screen, socket) {
                 code: code,
                 shift: shift,
                 isDown: isDown
-            })
+            }, token)
         }
     })
 }
 
 /** control button handler **/
-function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcStatusIcon) {
+function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcStatusIcon, token) {
     controlAccess = true
     controller.off('click')
     refreshScreenBtn.off('click')
@@ -165,7 +165,7 @@ function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcS
         refreshScreenBtn.addClass('scale-in')
         $('#page-content').css('display', 'none')
         $('#screen').css('display', 'block')
-        socket.emit('startRemoteControl')
+        socket.emit('startRemoteControl', token)
         controller.addClass('red accent-4')
         $('#control-icon').html('stop')
         controller.off('click')
@@ -173,11 +173,11 @@ function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcS
         isControlNow = true
 
         /** refresh screen before control **/
-        socket.emit('requestUpdate')
+        socket.emit('requestUpdate', token)
 
         /** refresh remote screen **/
         refreshScreenBtn.click(() => {
-            socket.emit('requestUpdate')
+            socket.emit('requestUpdate', token)
         })
 
         scaleRtcStatusIn(rtcStatus)
@@ -187,7 +187,7 @@ function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcS
             isControlNow = false
             $('#page-content').css('display', 'block')
             $('#screen').css('display', 'none')
-            socket.emit('stopRemoteControl')
+            socket.emit('stopRemoteControl', token)
             controller.removeClass('red accent-4')
             $('#control-icon').html('settings_remote')
             controller.off('click')
@@ -197,7 +197,7 @@ function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcS
             playSound('off.mp3')
             scaleRtcStatusOut(rtcStatus, rtcStatusIcon)
             /** recursive call **/
-            controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcStatusIcon)
+            controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcStatusIcon, token)
         })
     })
 }
@@ -210,43 +210,43 @@ function scrollDown(id) {
 }
 
 /** broadcasting question status to all users **/
-function broadCastQuestionStatus(socket, questionId, questionStatus) {
+function broadCastQuestionStatus(socket, questionId, questionStatus, token) {
     socket.emit('questionStatusFromNode', {
         id: questionId,
         status: questionStatus,
         isNeedPlaySound: true
-    })
+    }, token)
 }
 
 /** create question table **/
-async function createQuestionTable(count, socket) {
+async function createQuestionTable(count, socket, token) {
     for (let i = 1; i <= count; i++) {
         await createCheckButton(i)
         $(`#question_${i}`).click(() => {
             if ($(`#question_${i}`).hasClass('grey darken-1')) {
                 $(`#question_${i}`).toggleClass('grey darken-1')
                 $(`#question_${i}`).toggleClass('cyan lighten-3')
-                broadCastQuestionStatus(socket, i, QuestionStatus.received)
+                broadCastQuestionStatus(socket, i, QuestionStatus.received, token)
             }
             else if ($(`#question_${i}`).hasClass('cyan lighten-3')) {
                 $(`#question_${i}`).toggleClass('cyan lighten-3')
                 $(`#question_${i}`).toggleClass('yellow accent-4')
-                broadCastQuestionStatus(socket, i, QuestionStatus.resolving)
+                broadCastQuestionStatus(socket, i, QuestionStatus.resolving, token)
             }
             else if ($(`#question_${i}`).hasClass('yellow accent-4')) {
                 $(`#question_${i}`).toggleClass('yellow accent-4')
                 $(`#question_${i}`).toggleClass('red darken-1')
-                broadCastQuestionStatus(socket, i, QuestionStatus.suspended)
+                broadCastQuestionStatus(socket, i, QuestionStatus.suspended, token)
             }
             else if ($(`#question_${i}`).hasClass('red darken-1')) {
                 $(`#question_${i}`).toggleClass('red darken-1')
                 $(`#question_${i}`).toggleClass('green accent-4')
-                broadCastQuestionStatus(socket, i, QuestionStatus.done)
+                broadCastQuestionStatus(socket, i, QuestionStatus.done, token)
             }
             else if ($(`#question_${i}`).hasClass('green accent-4')) {
                 $(`#question_${i}`).toggleClass('green accent-4')
                 $(`#question_${i}`).toggleClass('grey darken-1')
-                broadCastQuestionStatus(socket, i, QuestionStatus.none)
+                broadCastQuestionStatus(socket, i, QuestionStatus.none, token)
             }
         })
     }
@@ -286,28 +286,32 @@ function fireNotification(text, notificationStatus) {
 }
 
 /** add answered screen **/
-function addOldScreen(name, galleryOld) {
+function addOldScreen(name, token, galleryOld) {
     const slide =
-        `  <a href="${name}">
+        `  
+        <a href="/${token + name}">
           <div class="caption hoverable z-depth-1 center-align">
-            <img src="${name}" />
+            <img src="/${token + name}" />
             <p>${name.slice(1, name.length - 4)}</p>
           </div>
-      </a>`
+        </a>
+        `
     galleryOld.append(slide)
     galleryOld.data('lightGallery').destroy(true)
     galleryOld.lightGallery(galleryOptions_old)
 }
 
 /** add new screen to new screens **/
-function addNewScreen(name, galleryNew) {
+function addNewScreen(name, token, galleryNew) {
     const slide =
-        `  <a href="${name}">
+        `  
+        <a href="/${token + name}">
           <div class="caption hoverable z-depth-1 center-align">
-            <img src="${name}" />
+            <img src="/${token + name}" />
             <p>${name.slice(1, name.length - 4)}</p>
           </div>
-      </a>`
+        </a>
+        `
     galleryNew.append(slide)
     galleryNew.data('lightGallery').destroy(true)
     galleryNew.lightGallery(galleryOptions_new)
@@ -364,11 +368,11 @@ function onDenyRemoteControl(remoteController, refreshScreenBtn, rtcStatus, rtcS
     destroyPeer()
 }
 
-function onAllowRemoteControl(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon) {
+function onAllowRemoteControl(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon, token) {
     if (!remoteAccess) {
         controlAccess = true
         remoteAccess = true
-        controlBtnHandler(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon)
+        controlBtnHandler(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon, token)
         fireNotification('Рарешен удаленный доступ', NotificationStatus.warning)
     }
 }
@@ -429,7 +433,9 @@ async function initPage(
     galleryOld,
     newCounterIcon,
     answeredCounterIcon,
-    socket
+    exitBtn,
+    socket,
+    token
 ) {
 
     /** gallery init **/
@@ -447,8 +453,13 @@ async function initPage(
         answeredCounter = 0
     })
 
+    /** init exit button **/
+    exitBtn.click(() => {
+        exitButtonHandler(socket)
+    })
+
     /** creating the question table **/
-    await createQuestionTable(150, socket)
+    await createQuestionTable(150, socket, token)
     /** tooltip init **/
     $('.tooltipped').tooltip()
     /** action button init **/
@@ -458,12 +469,17 @@ async function initPage(
     })
 }
 
+function exitButtonHandler(socket) {
+    socket.emit('exit')
+    document.location.reload()
+}
+
 /**
  * Peer connection
  *
  * **/
 
-function peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon) {
+function peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon, token) {
     /** destroy old connection **/
     destroyPeer()
 
@@ -477,7 +493,7 @@ function peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon) {
 
     /** webRTC handlers **/
     peer.on('signal', answer => {
-        socket.emit('answerFromUser', answer)
+        socket.emit('answerFromUser', answer, token)
         console.log(`answer has been sent to client, ${new Date()}`)
     })
     /** data from user **/
@@ -494,7 +510,7 @@ function peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon) {
     peer.on('error', error => {
         errorRtcStatus(rtcStatus, rtcStatusIcon)
         destroyPeer()
-        peerRequest(socket)
+        peerRequest(socket, token)
         console.error(`webRTC error, ${new Date()}`)
         console.error(error)
     })
@@ -502,7 +518,7 @@ function peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon) {
     peer.on('disconnect', () => {
         errorRtcStatus(rtcStatus, rtcStatusIcon)
         destroyPeer()
-        peerRequest(socket)
+        peerRequest(socket, token)
         console.log(`peer has been disconnected, ${new Date()}`)
     })
 }
@@ -518,9 +534,9 @@ function destroyPeer() {
 }
 
 /** new peer request after previous webRTC connection has been closed **/
-function peerRequest(socket) {
+function peerRequest(socket, token) {
     if (remoteAccess && controlAccess && isControlNow) {
-        socket.emit('peerRequest')
+        socket.emit('peerRequest', token)
         console.log(`peer request, ${new Date()}`)
     }
 }

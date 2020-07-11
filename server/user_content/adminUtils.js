@@ -9,10 +9,15 @@ const datePickerOptions = {
 const datePattern = /\d{2}\.\d{2}\.\d{4}/
 
 /** init admin page **/
-function initAdminPage(userCard, socket) {
+function initAdminPage(userCard, exitBtn, socket) {
     $('.tabs').tabs()
     $('.datepicker').datepicker(datePickerOptions)
+    $('.tooltipped').tooltip()
     initUserForm(userCard, socket)
+    /** init exit button **/
+    exitBtn.click(() => {
+        exitButtonHandler(socket)
+    })
 }
 
 /** init user form **/

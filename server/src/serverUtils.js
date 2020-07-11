@@ -4,8 +4,8 @@ const fs = require('fs')
 const config = require('../serverConfig')
 
 /** remove screens **/
-exports.removeScreens =  async function(isNew, io, Rooms) {
-    let files = await exports.readDirFiles(__dirname + '/../screens')
+exports.removeScreens =  async function(isNew, io, token) {
+    let files = await exports.readDirFiles(__dirname + `/../screens/${token}`)
 
     if (isNew)
         files = files.filter(fileName => fileName.startsWith('new'))
@@ -13,14 +13,14 @@ exports.removeScreens =  async function(isNew, io, Rooms) {
         files = files.filter(fileName => fileName.startsWith('answered'))
 
     files.forEach(fileName => {
-        fs.unlink(__dirname + `/../screens/${fileName}`, () => {})
+        fs.unlink(__dirname + `/../screens/${token + '/' + fileName}`, () => {})
     })
 
     if (isNew)
-        io.in(Rooms.users).emit('newScreensIsDeleted')
+        io.in(token + '-u').emit('newScreensIsDeleted')
     else
-        io.in(Rooms.users).emit('answeredScreensIsDeleted')
-    console.log(`delete screens, isNew: ${isNew}, ${new Date()}`)
+        io.in(token + '-u').emit('answeredScreensIsDeleted')
+    console.log(`delete screens, isNew: ${isNew}, token: ${token}, ${new Date()}`)
 }
 
 
@@ -86,8 +86,8 @@ exports.getHashedPassword = function(password) {
 }
 
 /** save screen to "screens" dir **/
-exports.saveScreen = async function(fileName, data, callback) {
-    fs.writeFile(`${__dirname}/../screens/${fileName}`, data, callback)
+exports.saveScreen = async function(token, fileName, data, callback) {
+    fs.writeFile(`${__dirname}/../screens/${token + '/' + fileName}`, data, callback)
 }
 
 /** load users from users.json **/
@@ -137,4 +137,11 @@ exports.validateServerUser = function(user, password) {
     const endDate = (exports.parseDate(user.endDate).getTime() > (new Date()).getTime())
     const access = user.userAccess || user.adminAccess
     return pass && beginDate && endDate && access
+}
+
+/** exists folder for the  @param token **/
+exports.initDirForToken = function (token) {
+    const tokenPath = __dirname + `/../screens/${token}`
+    if (!fs.existsSync(tokenPath))
+        fs.mkdirSync(tokenPath)
 }

@@ -17,27 +17,12 @@ Object.freeze(QuestionStatus)
 /** constructor **/
 function SocketController(io) {
     this.io = io
-    this.clientConnectionStatus = false
-    this.initFrame = null
-    this.controlAccess = false
-    this.currentUser = null
-    this.questionContainer = []
-    this.initFrame = null
-    this.Rooms = {
-        client: 'client',
-        users: 'users'
-    }
-    this.users = null
-    this.initQuestionContainer()
+    this.users = []
+    this.tokens = new Set()
+    this.teams = new Map()
+    this.authTokens = {}
+    /** init controller **/
     this.init()
-}
-
-/** init question container **/
-SocketController.prototype.initQuestionContainer = function() {
-    const self = this
-    for (let i = 1; i<= config.questionCount; i++) {
-        self.questionContainer.push(QuestionStatus.none)
-    }
 }
 
 /** save users **/
@@ -56,11 +41,70 @@ SocketController.prototype.getNextUserId = function() {
     }
 }
 
+/** update team and token containers for new/updated user **/
+SocketController.prototype.updateToken = function(token) {
+    const self = this
+    /** if token does not exist in token Set **/
+    if (!self.tokens.has(token)) {
+        /** update token Set **/
+        self.tokens.add(token)
+        /** update team Map **/
+        self.teams.set(token, {
+            clientConnectionStatus: false,
+            initFrame: null,
+            controlAccess: false,
+            currentUser: null,
+            questionContainer: [],
+            rooms: {
+                client: token + '-c',
+                user: token + '-u'
+            }
+        })
+        /** create question container for token **/
+        for (let i = 1; i<= config.questionCount; i++) {
+            self.teams.get(token).questionContainer.push(QuestionStatus.none)
+        }
+        /** init folder for new token **/
+        serverUtils.initDirForToken(token)
+    }
+}
+
+/** init socket controller **/
 SocketController.prototype.init = async function() {
     const self = this
 
     /** load users **/
     self.users = (await serverUtils.loadUsers()).users
+
+    /** init tokens **/
+    self.users.map(user => {
+        self.tokens.add(user.token)
+    })
+
+    /** init team Map and screen folder for each token **/
+    self.tokens.forEach(token => {
+        /** init team Map **/
+        self.teams.set(token, {
+            clientConnectionStatus: false,
+            initFrame: null,
+            controlAccess: false,
+            currentUser: null,
+            questionContainer: [],
+            rooms: {
+                client: token + '-c',
+                user: token + '-u'
+            }
+        })
+        /** init screen folder **/
+        serverUtils.initDirForToken(token)
+    })
+
+    /** init question containers **/
+    self.teams.forEach(((value, key) => {
+        for (let i = 1; i<= config.questionCount; i++) {
+            value.questionContainer.push(QuestionStatus.none)
+        }
+    }))
 
     /** socket connection **/
     self.io.on('connection', socket => {
@@ -71,76 +115,90 @@ SocketController.prototype.init = async function() {
          * **/
 
         /** client init **/
-        socket.on('clientInit', rect => {
-            self.clientConnectionStatus = true
-            socket.join(self.Rooms.client)
-            self.initFrame = rect
-            self.io.in(self.Rooms.users).emit('initFrame', rect)
-            self.io.in(self.Rooms.users).emit('clientHasBeenConnected')
-            console.log(`client has been connected, ${new Date()}`)
+        socket.on('clientInit', (rect, token) => {
+            const teamConfig = self.teams.get(token)
+            /** if token exists **/
+            if (teamConfig) {
+                teamConfig.clientConnectionStatus = true
+                socket.join(teamConfig.rooms.client)
+                teamConfig.initFrame = rect
+                self.io.in(teamConfig.rooms.user).emit('initFrame', teamConfig.initFrame)
+                self.io.in(teamConfig.rooms.user).emit('clientHasBeenConnected')
+                console.log(`client has been connected, token: ${token}, ${new Date()}`)
 
-            /** remove socket **/
-            socket.on('disconnect', () => {
-                self.clientConnectionStatus = false
-                self.controlAccess = false
-                console.log('client has been disconnected')
-                self.io.in(self.Rooms.users).emit('denyRemoteControl')
-                self.io.in(self.Rooms.users).emit('clientHasBeenDisconnected')
-                console.log(`client has been disconnected, ${new Date()}`)
-            })
+                /** remove socket **/
+                socket.on('disconnect', () => {
+                    teamConfig.clientConnectionStatus = false
+                    self.io.in(teamConfig.rooms.user).emit('denyRemoteControl')
+                    self.io.in(teamConfig.rooms.user).emit('clientHasBeenDisconnected')
+                    console.log(`client has been disconnected, token: ${token}, ${new Date()}`)
+                })
+            }
+            else {
+                /** if client token does not exist **/
+                socket.disconnect()
+                console.log(`client has been rejected, token: ${token} not found, ${new Date()}`)
+            }
         })
 
         /** offer from client on webRTC connection **/
-        socket.on('offerFromClient', offer => {
-            console.log(`offer has been received, ${new Date()}`)
-            if (self.currentUser)
-                self.currentUser.emit('offerFromClient', offer)
+        socket.on('offerFromClient', (offer, token) => {
+            console.log(`offer has been received, token: ${token}, ${new Date()}`)
+            const teamConfig = self.teams.get(token)
+            if (teamConfig.currentUser)
+                teamConfig.currentUser.emit('offerFromClient', offer)
         })
 
-        socket.on('answerFromUser', answer => {
-            console.log(`answer has been received, ${new Date()}`)
-            self.io.in(self.Rooms.client).emit('answerFromUser', answer)
+        socket.on('answerFromUser', (answer, token) => {
+            const teamConfig = self.teams.get(token)
+            console.log(`answer has been received, token: ${token}, ${new Date()}`)
+            self.io.in(teamConfig.rooms.client).emit('answerFromUser', answer)
         })
 
         /** new screenshot from client **/
-        socket.on('screenshot', async data => {
-            await serverUtils.saveScreen(data.filename, data.buffer, err => {
+        socket.on('screenshot', async (data, token) => {
+            const teamConfig = self.teams.get(token)
+            await serverUtils.saveScreen(token, data.filename, data.buffer, err => {
                 if (err)
                     console.error(err)
                 /** send new screenshot all users **/
                 if (data.filename.startsWith('new'))
-                    self.io.in(self.Rooms.users).emit('newScreenshot', `/${data.filename}`)
+                    self.io.in(teamConfig.rooms.user).emit('newScreenshot', `/${data.filename}`)
                 else
-                    self.io.in(self.Rooms.users).emit('answeredScreenshot', `/${data.filename}`)
-                console.log(`new screenshot: ${data.filename}, ${new Date()}`)
+                    self.io.in(teamConfig.rooms.user).emit('answeredScreenshot', `/${data.filename}`)
+                console.log(`new screenshot: ${data.filename}, token: ${token}, ${new Date()}`)
             })
         })
 
         /** new raw frame from client **/
-        socket.on('rawFrame', rect => {
+        socket.on('rawFrame', (rect, token) => {
+            const teamConfig = self.teams.get(token)
             /** encode and send frame to all users **/
-            if (self.currentUser)
-                serverUtils.encodeAndSendFrame(self.currentUser, rect, serverUtils.sendFrame)
+            if (teamConfig.currentUser)
+                serverUtils.encodeAndSendFrame(teamConfig.currentUser, rect, serverUtils.sendFrame)
         })
 
         /** new copy frame from client**/
-        socket.on('copyFrame', rect => {
-            if (self.currentUser)
-                self.currentUser.emit('copyFrame', rect)
+        socket.on('copyFrame', (rect, token) => {
+            const teamConfig = self.teams.get(token)
+            if (teamConfig.currentUser)
+                teamConfig.currentUser.emit('copyFrame', rect)
         })
 
         /** remote control has been allowed **/
-        socket.on('allowRemoteControl', () => {
-            self.controlAccess = true
-            self.io.in(self.Rooms.users).emit('allowRemoteControl')
-            console.log(`allow remote control, ${new Date()}`)
+        socket.on('allowRemoteControl', token => {
+            const teamConfig = self.teams.get(token)
+            teamConfig.controlAccess = true
+            self.io.in(teamConfig.rooms.user).emit('allowRemoteControl')
+            console.log(`allow remote control, token: ${token}, ${new Date()}`)
         })
 
         /** remote control has been denied **/
-        socket.on('denyRemoteControl', () => {
-            self.controlAccess = false
-            self.io.in(self.Rooms.users).emit('denyRemoteControl')
-            console.log(`deny remote control, ${new Date()}`)
+        socket.on('denyRemoteControl', token => {
+            const teamConfig = self.teams.get(token)
+            teamConfig.controlAccess = false
+            self.io.in(teamConfig.rooms.user).emit('denyRemoteControl')
+            console.log(`deny remote control, token: ${token} ${new Date()}`)
         })
 
 
@@ -151,89 +209,114 @@ SocketController.prototype.init = async function() {
          * **/
 
         /** add user **/
-        socket.on('user', async () => {
-            socket.join(self.Rooms.users)
-            console.log(`new user socket has been connected ${new Date()}`)
-            /** send old screens **/
-            const files = await serverUtils.readDirFiles(__dirname + '/../screens')
-            files.splice(files.indexOf(/readme/gm), 1)
-            socket.emit('oldScreens', files)
-            /** send all question statuses **/
-            for (let i = 0; i <= self.questionContainer.length; i++) {
-                socket.emit('questionStatusFromServer', {
-                    id: i + 1,
-                    status: self.questionContainer[i],
-                    isNeedPlaySound: false
+        socket.on('user', async cookies => {
+            cookies = cookies.substring(10)
+            const user = self.authTokens[cookies]
+            const token = user.token
+            socket.emit('token', token)
+            const teamConfig = self.teams.get(token)
+            if (teamConfig) {
+                socket.join(teamConfig.rooms.user)
+                console.log(`new user socket has been connected, token: ${token} ${new Date()}`)
+                /** send old screens **/
+                const files = await serverUtils.readDirFiles(__dirname + `/../screens/${token}`)
+                socket.emit('oldScreens', files)
+                /** send all question statuses **/
+                for (let i = 0; i <= teamConfig.questionContainer.length; i++) {
+                    socket.emit('questionStatusFromServer', {
+                        id: i + 1,
+                        status: teamConfig.questionContainer[i],
+                        isNeedPlaySound: false
+                    })
+                }
+                /** send init frame **/
+                if (teamConfig.initFrame)
+                    socket.emit('initFrame', teamConfig.initFrame)
+                if (teamConfig.controlAccess && !teamConfig.currentUser && teamConfig.clientConnectionStatus)
+                    socket.emit('allowRemoteControl')
+                /** send client connection status to new socket **/
+                if (teamConfig.clientConnectionStatus)
+                    socket.emit('clientHasBeenConnected')
+                else
+                    socket.emit('clientHasBeenDisconnected')
+                /** admin access **/
+                if (user.adminAccess)
+                    socket.emit('adminAccess')
+
+                /** exit user **/
+                socket.on('exit', () => {
+                    delete self.authTokens[cookies]
+                })
+
+                /** remove socket **/
+                socket.on('disconnect', () => {
+                    console.log(`user socket has been disconnected, token: ${token}, ${new Date()}`)
+                    if (self.currentUser === socket) {
+                        teamConfig.currentUser = null
+                        self.io.in(teamConfig.rooms.user).emit('stopRemoteControl')
+                        self.io.in(teamConfig.rooms.user).emit('allowRemoteControl')
+                        console.log(`stop remote control, token: ${token}, ${new Date()}`)
+                    }
                 })
             }
-            /** send init frame **/
-            if (self.initFrame)
-                socket.emit('initFrame', self.initFrame)
-            self.io.in(self.Rooms.client).emit('requestUpdate')
-            if (self.controlAccess && !self.currentUser)
-                socket.emit('allowRemoteControl')
-            /** send client connection status to new socket **/
-            if (self.clientConnectionStatus)
-                socket.emit('clientHasBeenConnected')
-            else
-                socket.emit('clientHasBeenDisconnected')
-
-            /** remove socket **/
-            socket.on('disconnect', () => {
-                console.log(`user socket has been disconnected, ${new Date()}`)
-                if (self.currentUser == socket) {
-                    self.currentUser = null
-                    self.io.in(self.Rooms.users).emit('stopRemoteControl')
-                    self.io.in(self.Rooms.users).emit('allowRemoteControl')
-                    console.log(`stop remote control, ${new Date()}`)
-                }
-            })
+            else {
+                socket.disconnect()
+                console.log(`user has been rejected, token: ${token} not found, ${new Date()}`)
+            }
         })
 
         /** receive new question status from node **/
-        socket.on('questionStatusFromNode', data => {
-            self.questionContainer[data.id - 1] = data.status
-            socket.broadcast.emit('questionStatusFromServer', data)
-            console.log(`question ${data.id}, status: ${data.status}, ${new Date()}`)
+        socket.on('questionStatusFromNode', (data, token) => {
+            const teamConfig = self.teams.get(token)
+            teamConfig.questionContainer[data.id - 1] = data.status
+            socket.to(teamConfig.rooms.user).emit('questionStatusFromServer', data)
+            console.log(`question ${data.id}, status: ${data.status}, token: ${token}, ${new Date()}`)
         })
 
         /** mouse event from node **/
-        socket.on('mouseEventFromNode', mouse => {
-            self.io.in(self.Rooms.client).emit('mouse', mouse)
+        socket.on('mouseEventFromNode', (mouse, token) => {
+            const teamConfig = self.teams.get(token)
+            self.io.in(teamConfig.rooms.client).emit('mouse', mouse)
         })
 
         /** keyboard event **/
-        socket.on('keyboardEventFromNode', keyboard => {
-            self.io.in(self.Rooms.client).emit('keyboard', {
+        socket.on('keyboardEventFromNode', (keyboard, token) => {
+            const teamConfig = self.teams.get(token)
+            self.io.in(teamConfig.rooms.client).emit('keyboard', {
                 isDown: keyboard.isDown,
                 keyCode: serverUtils.toRfbKeyCode(keyboard.code, keyboard.shift)
             })
         })
 
         /** remote control **/
-        socket.on('startRemoteControl', () => {
-            self.currentUser = socket
-            socket.broadcast.emit('startRemoteControl')
-            console.log(`start remote control, ${new Date()}`)
+        socket.on('startRemoteControl', token => {
+            const teamConfig = self.teams.get(token)
+            teamConfig.currentUser = socket
+            socket.to(teamConfig.rooms.user).emit('startRemoteControl')
+            self.io.in(teamConfig.rooms.client).emit('startRemoteControl')
+            console.log(`start remote control, token: ${token}, ${new Date()}`)
         })
 
         /** stop remote control **/
-        socket.on('stopRemoteControl', () => {
-            self.currentUser = null
-            socket.broadcast.emit('stopRemoteControl')
-            self.io.in(self.Rooms.users).emit('allowRemoteControl')
-            console.log(`stop remote control, ${new Date()}`)
+        socket.on('stopRemoteControl', token => {
+            const teamConfig = self.teams.get(token)
+            teamConfig.currentUser = null
+            self.io.in(teamConfig.rooms.user).emit('stopRemoteControl')
+            self.io.in(teamConfig.rooms.user).emit('allowRemoteControl')
+            console.log(`stop remote control, token: ${token}, ${new Date()}`)
         })
 
         /** new webRTC connection request **/
-        socket.on('peerRequest', () => {
-            if (self.controlAccess)
-                self.io.in(self.Rooms.client).emit('peerRequest')
+        socket.on('peerRequest', token => {
+            const teamConfig = self.teams.get(token)
+            if (teamConfig.controlAccess)
+                self.io.in(teamConfig.rooms.client).emit('peerRequest')
         })
 
         /** update screen handler **/
-        socket.on('requestUpdate', () => {
-            self.io.in(self.Rooms.client).emit('requestUpdate')
+        socket.on('requestUpdate', token => {
+            const teamConfig = self.teams.get(token)
+            self.io.in(teamConfig.rooms.client).emit('requestUpdate')
         })
 
         /**
@@ -244,14 +327,21 @@ SocketController.prototype.init = async function() {
         /** remove screens (new or answered) **/
 
         /** init admin **/
-        socket.on('admin', () => {
+        socket.on('admin', cookies => {
+            cookies = cookies.substring(10)
             self.users.forEach(user => {
                 socket.emit('userForAdmin', user)
+            })
+
+            /** exit admin **/
+            socket.on('exit', () => {
+                delete self.authTokens[cookies]
             })
         })
 
         /** add/edit user **/
         socket.on('addUser', async user => {
+            /** user already exists **/
             if (user.id) {
                 const userForEdit = self.users.find(baseUser => baseUser.id === user.id)
                 userForEdit.firstName = user.firstName
@@ -267,6 +357,7 @@ SocketController.prototype.init = async function() {
                 console.log(`edit user, user id: ${user.id}`)
                 socket.emit('editUser', user)
             }
+            /** user does not exist. Create new user **/
             else {
                 user.id = self.getNextUserId()
                 self.users.push(user)
@@ -274,6 +365,8 @@ SocketController.prototype.init = async function() {
                 console.log(`add user: ${user.login}, ${new Date()}`)
                 socket.emit('addUser', user)
             }
+            /** update token **/
+            self.updateToken(user.token)
         })
 
         /** delete user **/
@@ -287,26 +380,6 @@ SocketController.prototype.init = async function() {
                 socket.emit('deleteUser', userId)
             }
         })
-
-        //todo
-        /** remove screens handler **/
-        socket.on('removeScreens', async isNew => {
-            await serverUtils.removeScreens(isNew, self.io, self.Rooms)
-        })
-
-        /** reset question statuses **/
-        socket.on('resetQuestions', () => {
-            for (let i = 0; i < self.questionContainer.length; i++) {
-                self.questionContainer[i] = QuestionStatus.none
-                self.io.in(self.Rooms.users).emit('questionStatusFromServer', {
-                    id: i + 1,
-                    status: self.questionContainer[i],
-                    isNeedPlaySound: false
-                })
-            }
-            console.log(`reset questions, ${new Date()}`)
-        })
-
     })
 }
 

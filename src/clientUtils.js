@@ -57,12 +57,12 @@ exports.readScreenShotByName = function(name) {
 }
 
 /** send screenshot to recipient **/
-exports.sendScreenShot = function(socket, fileName, data, isAnswered) {
+exports.sendScreenShot = function(socket, token, fileName, data, isAnswered) {
     socket.emit('screenshot', {
         filename: fileName,
         buffer: data,
         answered: isAnswered
-    })
+    }, token)
 }
 
 /** returns name for new screenshot based on current date-time **/

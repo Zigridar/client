@@ -6,6 +6,7 @@ $(document).ready(async () => {
     /** system variables **/
     const userStatus = $('#user-status')
     const userStatusIcon = $('#user-status-icon')
+    const exitBtn = $('#exit-btn')
 
     /** edit user variables **/
     const userCard = {
@@ -37,7 +38,7 @@ $(document).ready(async () => {
 
     /** init server admin **/
     socket.on('connect', () => {
-        socket.emit('admin')
+        socket.emit('admin', document.cookie)
         onSocketConnect(userStatus, userStatusIcon)
     })
 
@@ -66,5 +67,5 @@ $(document).ready(async () => {
     })
 
     /** init page **/
-    initAdminPage(userCard, socket)
+    initAdminPage(userCard, exitBtn, socket)
 })

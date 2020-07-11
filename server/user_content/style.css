@@ -73,6 +73,13 @@ body {
 
 #admin-btn {
     position: absolute;
+    right: 70px;
+    top: 15px;
+    display: none;
+}
+
+#exit-btn {
+    position: absolute;
     right: 10px;
     top: 15px;
 }
