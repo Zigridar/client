@@ -45,21 +45,24 @@ function initUserForm(userCard, socket) {
             userCard.endDate
         )
         if (check) {
-            /** emit to server **/
-            socket.emit('addUser', {
-                id: userCard.id,
-                firstName: userCard.firstName.val(),
-                lastName: userCard.lastName.val(),
-                login: userCard.login.val(),
-                password: userCard.password.val(),
-                token: userCard.token.val(),
-                beginDate: userCard.beginDate.val(),
-                endDate: userCard.endDate.val(),
-                userAccess: userCard.userAccess.prop('checked'),
-                adminAccess: userCard.adminAccess.prop('checked')
-            })
-            /** clear form **/
-            clearForm(userCard)
+            const success = () => {
+                /** emit to server **/
+                socket.emit('addUser', {
+                    id: userCard.id,
+                    firstName: userCard.firstName.val(),
+                    lastName: userCard.lastName.val(),
+                    login: userCard.login.val(),
+                    password: userCard.password.val(),
+                    token: userCard.token.val(),
+                    beginDate: userCard.beginDate.val(),
+                    endDate: userCard.endDate.val(),
+                    userAccess: userCard.userAccess.prop('checked'),
+                    adminAccess: userCard.adminAccess.prop('checked')
+                })
+                /** clear form **/
+                clearForm(userCard)
+            }
+            confirmDialog('Сохранить пользователя', success)
         }
         else
             errorDialog('Invalid data')
@@ -145,9 +148,13 @@ function fillUserCard(userCard, user, socket) {
     /** delete btn handlers **/
     userCard.deleteBtn.off()
     userCard.deleteBtn.removeClass('disabled')
+
     userCard.deleteBtn.click(() => {
-        socket.emit('deleteUser', user.id)
-        clearForm(userCard)
+        const success = () => {
+            socket.emit('deleteUser', user.id)
+            clearForm(userCard)
+        }
+        confirmDialog('Удалить пользователя', success)
     })
 }
 
