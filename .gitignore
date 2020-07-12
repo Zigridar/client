@@ -5,5 +5,4 @@
 /server/user_content/peer.js
 /server/user_content/buffer.js
 /server/users.json
-/server/logs/server.log
-/server/logs/server-err.log
+/server/logs/
