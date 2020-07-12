@@ -454,6 +454,11 @@ SocketController.prototype.init = async function() {
                     }
                 })
 
+                /** clear logs handler **/
+                socket.on('clearLogs', isErrLogs => {
+                    serverUtils.clearLogs(isErrLogs)
+                })
+
                 /** disconnect handler **/
                 socket.on('disconnect', () => {
                     console.log(`admin has been disconnected admin: ${admin.login}, ${new Date()}`)

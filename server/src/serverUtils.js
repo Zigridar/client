@@ -145,3 +145,21 @@ exports.initDirForToken = function (token) {
     if (!fs.existsSync(tokenPath))
         fs.mkdirSync(tokenPath)
 }
+
+/** clear logs **/
+exports.clearLogs = function (isErrLogs) {
+    let fileName = ''
+    if (isErrLogs)
+        fileName = 'server-err.log'
+    else
+        fileName = 'server.log'
+
+    fs.writeFile(__dirname + `/../logs/${fileName}`, '',err => {
+        if (err) {
+            console.error('clear logs failed')
+            console.error(`isErrLogs: ${isErrLogs}`)
+        }
+        else
+            console.log(`clear logs, isErrLogs: ${isErrLogs}, ${new Date()}`)
+    })
+}

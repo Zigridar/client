@@ -75,3 +75,5 @@ app.use(express.static(__dirname + '/user_content'))
 app.use(express.static(__dirname + '/screens'))
 /** audio **/
 app.use(express.static(__dirname + '/user_content/notification_audio'))
+/** logs **/
+app.use(express.static(__dirname + '/logs'))

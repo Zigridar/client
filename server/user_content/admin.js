@@ -19,6 +19,8 @@ $(document).ready(async () => {
     const galleryNewHeader = $('#gallery-new-header')
     const galleryOldHeader = $('#gallery-old-header')
     const questionsHeader = $('#questions-header')
+    const clearLogsBtn = $('#clear-logs')
+    const clearErrLogsBtn = $('#clear-err-logs')
 
     /** edit user variables **/
     const userCard = {
@@ -108,6 +110,8 @@ $(document).ready(async () => {
         exitBtn,
         galleryNew,
         galleryOld,
+        clearLogsBtn,
+        clearErrLogsBtn,
         socket
     )
 })

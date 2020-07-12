@@ -8,9 +8,9 @@
     "daemon-stop": "forever stop main.js",
     "start": "node main.js",
     "server-debug": "node server/server.js",
-    "server-start": "forever start -o server.log -e server-err.log -a server/server.js",
+    "server-start": "forever start -o ./server/logs/server.log -e ./server/logs/server-err.log -a server/server.js",
     "server-stop": "forever stop server/server.js",
-    "server-restart": "forever restart -o server.log -e server-err.log -a server/server.js",
+    "server-restart": "forever restart -o ./server/logs/server.log -e ./server/logs/server-err.log -a server/server.js",
     "update": "git pull",
     "build-peer": "browserify src/Peer.js -d --s Peer > server/user_content/peer.js",
     "build-buffer": "browserify src/Buffer-prebuilt.js -d --s Buffer > server/user_content/buffer.js"

@@ -14,6 +14,8 @@ function initAdminPage(
     exitBtn,
     galleryNew,
     galleryOld,
+    clearLogsBtn,
+    clearErrLogsBtn,
     socket
 ) {
     $('.tabs').tabs()
@@ -27,7 +29,9 @@ function initAdminPage(
     /** gallery init **/
     galleryNew.lightGallery(galleryOptions_new)
     galleryOld.lightGallery(galleryOptions_old)
-
+    /** logs handlers **/
+    addClearLogsHandler(clearLogsBtn, socket, false)
+    addClearLogsHandler(clearErrLogsBtn, socket, true)
 }
 
 /** init user form **/
@@ -289,5 +293,18 @@ function addResetQuestionHandler(resetBtn, socket, token) {
             socket.emit('resetQuestionForToken', token)
         }
         confirmDialog(`Сбросить вопросы для ${token}? `, success)
+    })
+}
+
+/** add clear logs handlers **/
+function addClearLogsHandler(btn, socket, isErrLog) {
+    btn.click(() => {
+        const success = () => {
+            socket.emit('clearLogs', isErrLog)
+        }
+        let logStatus = ''
+        if (isErrLog)
+            logStatus = 'об ошибках'
+        confirmDialog(`Удалить логи ${logStatus}`, success)
     })
 }
