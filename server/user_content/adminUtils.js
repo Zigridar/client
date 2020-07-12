@@ -208,20 +208,42 @@ function updateUser(user) {
 }
 
 /** add new token to col **/
-function addTokenToCol(token, tokenTableBody, socket, galleryNew, galleryOld) {
+function addTokenToScreenCol(token, tokenTableBody, socket, galleryNew, galleryOld, galleryNewHeader, galleryOldHeader) {
     const row =
         `
-        <tr id="token-${token}">
+        <tr id="s-token-${token}">
             <td>${token}</td>
         </tr>
         `
     tokenTableBody.prepend(row)
 
-    $(`#token-${token}`).dblclick(() => {
+    $(`#s-token-${token}`).dblclick(() => {
         /** reset gallery **/
         galleryNew.html('')
         galleryOld.html('')
+        galleryNewHeader.html(`new screens, ${token}`)
+        galleryOldHeader.html(`answered screens, ${token}`)
         socket.emit('requestScreenForToken', token)
+    })
+}
+
+/** add new token to question col **/
+async function addTokenToQuestionCol(token, tokenQuestionBody, socket, resetBtn, questionContainer, questionHeader) {
+    const row =
+        `
+        <tr id="q-token-${token}">
+            <td>${token}</td>
+        </tr>
+        `
+    tokenQuestionBody.prepend(row)
+
+    $(`#q-token-${token}`).dblclick(() => {
+        questionContainer.html('')
+        questionHeader.html(`questions, ${token}`)
+        questionContainer.token = token
+        createQuestionTable(150, socket, token, questionContainer)
+        socket.emit('requestQuestionsForToken', token)
+        addResetQuestionHandler(resetBtn, socket, token)
     })
 }
 
@@ -237,7 +259,7 @@ function addDeleteBtnHandlers(deleteNewBtn, deleteOldBtn, token, socket, gallery
             socket.emit('deleteNewForToken', token)
             galleryNew.html('')
         }
-        confirmDialog(`Do you really want to delete all new screens for token ${token}?`, success)
+        confirmDialog(`Удалить новые скрины для ${token}?`, success)
     })
 
     /** for old **/
@@ -246,6 +268,19 @@ function addDeleteBtnHandlers(deleteNewBtn, deleteOldBtn, token, socket, gallery
             socket.emit('deleteOldForToken', token)
             galleryOld.html('')
         }
-        confirmDialog(`Do you really want to delete all answered screens for token ${token}?`, success)
+        confirmDialog(`Удалить отвеченные скрины для ${token}?`, success)
+    })
+}
+
+/** add reset questions handler **/
+function addResetQuestionHandler(resetBtn, socket, token) {
+    /** remove old handler **/
+    resetBtn.off()
+    /** add new **/
+    resetBtn.click(() => {
+        const success = () => {
+            socket.emit('resetQuestionForToken', token)
+        }
+        confirmDialog(`Сбросить вопросы для ${token}? `, success)
     })
 }

@@ -219,9 +219,9 @@ function broadCastQuestionStatus(socket, questionId, questionStatus, token) {
 }
 
 /** create question table **/
-async function createQuestionTable(count, socket, token) {
+async function createQuestionTable(count, socket, token, questionContainer) {
     for (let i = 1; i <= count; i++) {
-        await createCheckButton(i)
+        await createCheckButton(i, questionContainer)
         $(`#question_${i}`).click(() => {
             if ($(`#question_${i}`).hasClass('grey darken-1')) {
                 $(`#question_${i}`).toggleClass('grey darken-1')
@@ -253,15 +253,15 @@ async function createQuestionTable(count, socket, token) {
 }
 
 /** create checkButton **/
-function createCheckButton(number) {
-    return new Promise((resolve, reject) => {
+function createCheckButton(number, questionContainer) {
+    return new Promise((resolve) => {
         let content = number.toString()
         if (number < 10)
             content += '&nbsp '
         const button = `
         <a class="waves-effect waves-light btn question_btn grey darken-1" id="question_${number}">${content}</a>
         `
-        $('#question_card').append(button)
+       questionContainer.append(button)
         resolve(number)
     })
 }
@@ -434,6 +434,7 @@ async function initPage(
     newCounterIcon,
     answeredCounterIcon,
     exitBtn,
+    questionContainer,
     socket,
     token
 ) {
@@ -459,7 +460,7 @@ async function initPage(
     })
 
     /** creating the question table **/
-    await createQuestionTable(150, socket, token)
+    await createQuestionTable(150, socket, token, questionContainer)
     /** tooltip init **/
     $('.tooltipped').tooltip()
     /** action button init **/

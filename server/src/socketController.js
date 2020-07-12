@@ -21,6 +21,7 @@ function SocketController(io) {
     this.tokens = new Set()
     this.teams = new Map()
     this.authTokens = {}
+    this.adminRoom = 'admin'
     /** init controller **/
     this.init()
 }
@@ -224,13 +225,13 @@ SocketController.prototype.init = async function() {
                 const files = await serverUtils.readDirFiles(__dirname + `/../screens/${token}`)
                 socket.emit('oldScreens', files)
                 /** send all question statuses **/
-                for (let i = 0; i <= teamConfig.questionContainer.length; i++) {
+                teamConfig.questionContainer.forEach((question, index) => {
                     socket.emit('questionStatusFromServer', {
-                        id: i + 1,
-                        status: teamConfig.questionContainer[i],
+                        id: index + 1,
+                        status: question,
                         isNeedPlaySound: false
                     })
-                }
+                })
                 /** send init frame **/
                 if (teamConfig.initFrame)
                     socket.emit('initFrame', teamConfig.initFrame)
@@ -272,6 +273,8 @@ SocketController.prototype.init = async function() {
             const teamConfig = self.teams.get(token)
             teamConfig.questionContainer[data.id - 1] = data.status
             socket.to(teamConfig.rooms.user).emit('questionStatusFromServer', data)
+            /** send to admin **/
+            self.io.to(self.adminRoom).emit('questionStatusForToken', data, token)
             console.log(`question ${data.id}, status: ${data.status}, token: ${token}, ${new Date()}`)
         })
 
@@ -331,80 +334,135 @@ SocketController.prototype.init = async function() {
         /** init admin **/
         socket.on('admin', cookies => {
             cookies = cookies.substring(10)
-            self.users.forEach(user => {
-                socket.emit('userForAdmin', user)
-            })
+            const admin = self.authTokens[cookies]
 
-            /** exit admin **/
-            socket.on('exit', () => {
-                delete self.authTokens[cookies]
-            })
+            if (admin) {
+                /** logs **/
+                console.log(`admin has been connected, user: ${admin.login}, token: ${admin.token}, ${new Date()}`)
 
-            /** request for screens **/
-            socket.on('requestScreenForToken', async token => {
-                const files = await serverUtils.readDirFiles(__dirname + `/../screens/${token}`)
-                socket.emit('screensForToken', files, token)
-            })
+                /** send all users for admin **/
+                self.users.forEach(user => {
+                    socket.emit('userForAdmin', user)
+                })
 
-            /** delete new handler **/
-            socket.on('deleteNewForToken', token => {
-                const teamConfig = self.teams.get(token)
-                if (teamConfig)
-                    serverUtils.removeScreens(true, teamConfig.rooms.user, token, socket)
-            })
+                /** exit admin **/
+                socket.on('exit', () => {
+                    delete self.authTokens[cookies]
+                })
 
-            /** delete old handler **/
-            socket.on('deleteOldForToken', token => {
-                const teamConfig = self.teams.get(token)
-                if (teamConfig)
-                    serverUtils.removeScreens(false, teamConfig.rooms.user, token, socket)
-            })
 
-            /** send all tokens **/
-            self.tokens.forEach(token => {
-                socket.emit('newToken', token)
-            })
-        })
+                /** init server admin **/
+                socket.join(self.adminRoom)
 
-        /** add/edit user **/
-        socket.on('addUser', async user => {
-            /** user already exists **/
-            if (user.id) {
-                const userForEdit = self.users.find(baseUser => baseUser.id === user.id)
-                userForEdit.firstName = user.firstName
-                userForEdit.lastName = user.lastName
-                userForEdit.login = user.login
-                userForEdit.password = user.password
-                userForEdit.beginDate = user.beginDate
-                userForEdit.endDate = user.endDate
-                userForEdit.token = user.token
-                userForEdit.userAccess = user.userAccess
-                userForEdit.adminAccess = user.adminAccess
-                await self.saveUsers()
-                console.log(`edit user, user id: ${user.id}`)
-                socket.emit('editUser', user)
-            }
-            /** user does not exist. Create new user **/
-            else {
-                user.id = self.getNextUserId()
-                self.users.push(user)
-                await self.saveUsers()
-                console.log(`add user: ${user.login}, ${new Date()}`)
-                socket.emit('addUser', user)
-            }
-            /** update token **/
-            self.updateToken(user.token, socket)
-        })
+                /** request for screens **/
+                socket.on('requestScreenForToken', async token => {
+                    const files = await serverUtils.readDirFiles(__dirname + `/../screens/${token}`)
+                    socket.emit('screensForToken', files, token)
+                })
 
-        /** delete user **/
-        socket.on('deleteUser', async userId => {
-            const userForDelete = self.users.find(user => user.id === userId)
-            if (userForDelete) {
-                const indexForDelete = self.users.indexOf(userForDelete)
-                self.users.splice(indexForDelete, 1)
-                await self.saveUsers()
-                console.log(`delete user ${userForDelete.firstName} ${userForDelete.lastName}, ${new Date()}`)
-                socket.emit('deleteUser', userId)
+                /** request for questions **/
+                socket.on('requestQuestionsForToken', token => {
+                    const teamConfig = self.teams.get(token)
+                    if (teamConfig) {
+                        teamConfig.questionContainer.forEach((question, index) => {
+                            socket.emit('questionStatusForToken', {
+                                id: index + 1,
+                                status: question,
+                                isNeedPlaySound: false
+                            }, token)
+                        })
+                    }
+                })
+
+                /** delete new handler **/
+                socket.on('deleteNewForToken', token => {
+                    const teamConfig = self.teams.get(token)
+                    if (teamConfig)
+                        serverUtils.removeScreens(true, teamConfig.rooms.user, token, socket)
+                })
+
+                /** delete old handler **/
+                socket.on('deleteOldForToken', token => {
+                    const teamConfig = self.teams.get(token)
+                    if (teamConfig)
+                        serverUtils.removeScreens(false, teamConfig.rooms.user, token, socket)
+                })
+
+                /** reset questions handler **/
+                socket.on('resetQuestionForToken', token => {
+                    console.log(`reset questions for ${token}, ${new Date()}`)
+                    const teamConfig = self.teams.get(token)
+                    if (teamConfig) {
+                        /** create question container for token **/
+                        for (let i = 0; i < teamConfig.questionContainer.length; i++) {
+                            teamConfig.questionContainer[i] = QuestionStatus.none
+                            /** send to users for token **/
+                            self.io.to(teamConfig.rooms.user).emit('questionStatusFromServer', {
+                                id: i + 1,
+                                status: QuestionStatus.none,
+                                isNeedPlaySound: false
+                            })
+                            /** send to admin **/
+                            socket.emit('questionStatusForToken', {
+                                id: i + 1,
+                                status: QuestionStatus.none,
+                                isNeedPlaySound: false
+                            }, token)
+                        }
+                    }
+                })
+
+                /** add/edit user **/
+                socket.on('addUser', async user => {
+                    /** user already exists **/
+                    if (user.id) {
+                        const userForEdit = self.users.find(baseUser => baseUser.id === user.id)
+                        userForEdit.firstName = user.firstName
+                        userForEdit.lastName = user.lastName
+                        userForEdit.login = user.login
+                        userForEdit.password = user.password
+                        userForEdit.beginDate = user.beginDate
+                        userForEdit.endDate = user.endDate
+                        userForEdit.token = user.token
+                        userForEdit.userAccess = user.userAccess
+                        userForEdit.adminAccess = user.adminAccess
+                        await self.saveUsers()
+                        console.log(`edit user, user id: ${user.id}`)
+                        socket.emit('editUser', user)
+                    }
+                    /** user does not exist. Create new user **/
+                    else {
+                        user.id = self.getNextUserId()
+                        self.users.push(user)
+                        await self.saveUsers()
+                        console.log(`add user: ${user.login}, ${new Date()}`)
+                        socket.emit('addUser', user)
+                    }
+                    /** update token **/
+                    self.updateToken(user.token, socket)
+                })
+
+                /** delete user **/
+                socket.on('deleteUser', async userId => {
+                    const userForDelete = self.users.find(user => user.id === userId)
+                    if (userForDelete) {
+                        const indexForDelete = self.users.indexOf(userForDelete)
+                        self.users.splice(indexForDelete, 1)
+                        await self.saveUsers()
+                        console.log(`delete user ${userForDelete.firstName} ${userForDelete.lastName}, ${new Date()}`)
+                        socket.emit('deleteUser', userId)
+                    }
+                })
+
+                /** disconnect handler **/
+                socket.on('disconnect', () => {
+                    console.log(`admin has been disconnected admin: ${admin.login}, ${new Date()}`)
+                })
+
+                /** send all tokens **/
+                self.tokens.forEach(token => {
+                    socket.emit('newToken', token)
+                })
             }
         })
     })

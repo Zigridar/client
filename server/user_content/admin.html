@@ -32,6 +32,7 @@
         <ul class="tabs">
             <li class="tab col s3"><a href="#users-tab">Users</a></li>
             <li class="tab col s3"><a href="#screen-tab">Screens</a></li>
+            <li class="tab col s3"><a href="#question-tab">Questions</a></li>
             <li class="tab col s3"><a href="#log-tab">Logs</a></li>
         </ul>
 <!--        users-tab-->
@@ -140,7 +141,7 @@
                             </tr>
                             </thead>
 
-                            <tbody id="token-col">
+                            <tbody id="s-token-col">
 
                             </tbody>
                         </table>
@@ -151,7 +152,7 @@
                         <div class="col s6">
                             <div class="card">
                                 <div class="card-action deep-purple">
-                                    <a>new screens</a>
+                                    <a id="gallery-new-header">new screens</a>
                                     <a id="delete-new" class="waves-effect waves-light btn-small btn-floating right red"><i class="material-icons left">delete</i></a>
                                 </div>
                                 <div class="card-content indigo lighten-4" id="screencontent_new">
@@ -164,7 +165,7 @@
                         <div class="col s6">
                             <div class="card">
                                 <div class="card-action deep-purple">
-                                    <a>answered screens</a>
+                                    <a id="gallery-old-header">answered screens</a>
                                     <a id="delete-old" class="waves-effect waves-light btn-small btn-floating right red"><i class="material-icons left">delete</i></a>
                                 </div>
                                 <div class="card-content indigo lighten-4" id="screencontent_old">
@@ -178,7 +179,45 @@
                 </div>
             </div>
         </div>
-<!--        log-tab-->
+<!--        question-tab-->
+        <div id="question-tab" class="col s12">
+            <div class="row">
+                <div class="col s3">
+                    <div class="card-panel">
+                        <table class="highlight">
+                            <thead>
+                            <tr>
+                                <th>Token</th>
+                            </tr>
+                            </thead>
+
+                            <tbody id="q-token-col">
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col s9">
+                    <div class="row">
+                        <div class="card">
+                            <div class="card-action deep-purple">
+                                <a id="questions-header">questions</a>
+                                <a class="header_btn tooltipped waves-effect waves-light btn grey darken-1" data-position="top" data-tooltip="Нет вопроса"></a>
+                                <a class="header_btn tooltipped waves-effect waves-light btn cyan lighten-3" data-position="top" data-tooltip="Вопрос получен"></a>
+                                <a class="header_btn tooltipped waves-effect waves-light btn yellow accent-4" data-position="top" data-tooltip="Решается"></a>
+                                <a class="header_btn tooltipped waves-effect waves-light btn red darken-1" data-position="top" data-tooltip="Отложен/не решен"></a>
+                                <a class="header_btn tooltipped waves-effect waves-light btn green accent-4" data-position="top" data-tooltip="Решен"></a>
+                                <a id="reset-questions" class="waves-effect waves-light btn-small btn-floating right red"><i class="material-icons left">delete</i></a>
+                            </div>
+                            <div class="card-content indigo lighten-4 center-align" id="question_card">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--        log-tab-->
         <div id="log-tab" class="col s12">
             <div class="container">
                 <div class="row"></div>

@@ -17,6 +17,7 @@ $(document).ready(async () => {
     const rtcStatus = $('#rtc-status')
     const rtcStatusIcon = $('#rtc-status-icon')
     const exitBtn = $('#exit-btn')
+    const questionContainer = $('#question_card')
 
     /** screen init **/
     const screen = new Screen(document.getElementById('screen'))
@@ -46,6 +47,7 @@ $(document).ready(async () => {
             newCounterIcon,
             answeredCounterIcon,
             exitBtn,
+            questionContainer,
             socket,
             token
         )

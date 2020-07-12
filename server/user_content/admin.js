@@ -8,11 +8,17 @@ $(document).ready(async () => {
     const userStatusIcon = $('#user-status-icon')
     const exitBtn = $('#exit-btn')
     const userTableBody = $('#users-col')
-    const tokenTableBody = $('#token-col')
+    const tokenScreenBody = $('#s-token-col')
+    const tokenQuestionBody = $('#q-token-col')
     const galleryNew = $("#lightgallery_new")
     const galleryOld = $("#lightgallery_old")
     const deleteNewBtn = $('#delete-new')
     const deleteOldBtn = $('#delete-old')
+    const resetQuestionsBtn = $('#reset-questions')
+    const questionContainer = $('#question_card')
+    const galleryNewHeader = $('#gallery-new-header')
+    const galleryOldHeader = $('#gallery-old-header')
+    const questionsHeader = $('#questions-header')
 
     /** edit user variables **/
     const userCard = {
@@ -72,7 +78,8 @@ $(document).ready(async () => {
 
     /** new token **/
     socket.on('newToken', token => {
-        addTokenToCol(token, tokenTableBody, socket, galleryNew, galleryOld)
+        addTokenToScreenCol(token, tokenScreenBody, socket, galleryNew, galleryOld, galleryNewHeader, galleryOldHeader)
+        addTokenToQuestionCol(token, tokenQuestionBody, socket, resetQuestionsBtn, questionContainer, questionsHeader)
     })
 
     /** get screens for selected token **/
@@ -87,6 +94,12 @@ $(document).ready(async () => {
         })
 
         addDeleteBtnHandlers(deleteNewBtn, deleteOldBtn, token, socket, galleryNew, galleryOld)
+    })
+
+    /** question for token from server **/
+    socket.on('questionStatusForToken', (questionStatus, token) => {
+        if (questionContainer.token === token)
+            onQuestionChange(questionStatus)
     })
 
     /** init page **/
