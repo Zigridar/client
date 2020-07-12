@@ -1,8 +1,8 @@
 {
-  "port": 5901,
-  "password": "safon1242",
-  "serverUrl": "http://localhost:8080/",
-  "token": "gynlgkekjz",
+  "port": 1234,
+  "password": "password",
+  "serverUrl": "http://89.223.125.175:8080/",
+  "token": "token",
   "newScreenshotBtns": [16, 17],
   "answeredScreenshotBtns": [30, 31],
   "startControlBtns": [18, 19],
