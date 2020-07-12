@@ -10,6 +10,8 @@ const clientUtils = require('./src/clientUtils')
 const toRfbKeyCode = require('./server/src/serverUtils').toRfbKeyCode
 const MAX_MESSAGE_SIZE = 64000
 const MAX_FRAME_COUNT = 50
+const SOCKET_SERVER_FRAME_MESSAGE_TIMEOUT = 1000
+const SCREENSHOT_TIMEOUT = 2000
 
 /**
  * global variables
@@ -41,6 +43,9 @@ let isPeerConnected = false
 /** frame counter **/
 let frameCounter = 0
 
+/** can take screenshot **/
+let canScreenShot = true
+
 /** init socket connection **/
 const socket = io.connect(config.serverUrl, {
     forceNew: true,
@@ -69,7 +74,7 @@ rfbConnection.on('rawRect', async rect => {
     if (frameCounter === MAX_FRAME_COUNT) {
         setTimeout(() => {
             frameCounter = 0
-        }, 2000)
+        }, SOCKET_SERVER_FRAME_MESSAGE_TIMEOUT)
     }
 
     /** size checking **/
@@ -114,9 +119,9 @@ socket.on('connect', async () => {
     isConnected = true
     if (remoteControlAccess) {
         socket.emit('allowRemoteControl', config.token)
-        socket.emit('clientInit', initialRect, config.token)
         rfbConnection.updateScreen()
     }
+    socket.emit('clientInit', initialRect, config.token)
     /** send old screens after socket connection **/
     await clientUtils.sendOld(unsentScreens, socket)
 })
@@ -188,29 +193,37 @@ function startApp() {
 
 /** The main handler **/
 async function screenShotHandler(keys) {
-    /** local variables **/
-    let screenName = ''
-    let isAnswered = false
-    /** new screenshot shortcut **/
-    if (clientUtils.arrayEqual(config.newScreenshotBtns, keys)) {
-        screenName = clientUtils.getScreenShotName('new_')
+    if (canScreenShot) {
+        canScreenShot = false
+        /** local variables **/
+        let screenName = ''
+        let isAnswered = false
+        /** new screenshot shortcut **/
+        if (clientUtils.arrayEqual(config.newScreenshotBtns, keys)) {
+            screenName = clientUtils.getScreenShotName('new_')
+        }
+        /** answered screenshot s **/
+        else if (clientUtils.arrayEqual(config.answeredScreenshotBtns, keys)) {
+            screenName = clientUtils.getScreenShotName('answered_')
+            isAnswered = true
+        }
+        /** screenshot buffer **/
+        const imgBuff = await clientUtils.takeScreenShot()
+        if (isConnected) {
+            await clientUtils.sendOld(unsentScreens, socket)
+            clientUtils.sendScreenShot(socket, config.token, screenName, imgBuff, isAnswered)
+            unsentScreens = []
+        }
+        else
+            unsentScreens.push(screenName)
+        /** save local any new screen **/
+        await clientUtils.saveScreenShot(imgBuff, screenName)
+
+        /** unblock screenshot access after timeout **/
+        setTimeout(() => {
+            canScreenShot = true
+        }, SCREENSHOT_TIMEOUT)
     }
-    /** answered screenshot s **/
-    else if (clientUtils.arrayEqual(config.answeredScreenshotBtns, keys)) {
-        screenName = clientUtils.getScreenShotName('answered_')
-        isAnswered = true
-    }
-    /** screenshot buffer **/
-    const imgBuff = await clientUtils.takeScreenShot()
-    if (isConnected) {
-        await clientUtils.sendOld(unsentScreens, socket)
-        clientUtils.sendScreenShot(socket, config.token, screenName, imgBuff, isAnswered)
-        unsentScreens = []
-    }
-    else
-        unsentScreens.push(screenName)
-    /** save local any new screen **/
-    await clientUtils.saveScreenShot(imgBuff, screenName)
 }
 
 /** remote control shortcut handler **/

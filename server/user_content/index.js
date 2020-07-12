@@ -33,10 +33,9 @@ $(document).ready(async () => {
     /** init server user **/
     socket.on('connect', () => {
         onSocketConnect(userStatus, userStatusIcon)
+        /** init server user **/
+        socket.emit('user', document.cookie)
     })
-
-    /** init server user **/
-    socket.emit('user', document.cookie)
 
     /** await token from user **/
     socket.once('token', async token => {
