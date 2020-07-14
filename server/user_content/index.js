@@ -95,7 +95,7 @@ $(document).ready(async () => {
         /** init frame (once!!!) **/
         socket.once('initFrame', rect => {
             screen.init(rect.width, rect.height)
-            addScreenHandlers(screen, socket, token)
+            addScreenHandlers(screen, socket)
         })
 
         /** draw new raw frame (using socket-server) **/
@@ -110,7 +110,7 @@ $(document).ready(async () => {
 
         /** allow remote control **/
         socket.on('allowRemoteControl', () => {
-            onAllowRemoteControl(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon, token)
+            onAllowRemoteControl(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon)
         })
 
         /** deny remote control **/
@@ -127,7 +127,7 @@ $(document).ready(async () => {
         socket.on('stopRemoteControl', () => {
             controlAccess = true
             if (remoteAccess) {
-                controlBtnHandler(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon, token)
+                controlBtnHandler(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon)
             }
         })
 
@@ -153,7 +153,7 @@ $(document).ready(async () => {
 
         /** webRTC offer **/
         socket.on('offerFromClient', offer => {
-            peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon, token)
+            peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon)
             console.log(`offer from server, ${new Date()}`)
         })
     })

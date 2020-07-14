@@ -111,7 +111,7 @@ function errorDialog(text) {
 }
 
 /** add screen handlers to screen **/
-function addScreenHandlers(screen, socket, token) {
+function addScreenHandlers(screen, socket) {
     /** screen mouse handler **/
     screen.on('mouseEvent', (x, y, button) => {
         if (isPeerConnected) {
@@ -127,7 +127,7 @@ function addScreenHandlers(screen, socket, token) {
                 x: x,
                 y: y,
                 button: button
-            }, token)
+            })
         }
     })
 
@@ -146,13 +146,13 @@ function addScreenHandlers(screen, socket, token) {
                 code: code,
                 shift: shift,
                 isDown: isDown
-            }, token)
+            })
         }
     })
 }
 
 /** control button handler **/
-function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcStatusIcon, token) {
+function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcStatusIcon) {
     controlAccess = true
     controller.off('click')
     refreshScreenBtn.off('click')
@@ -165,7 +165,7 @@ function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcS
         refreshScreenBtn.addClass('scale-in')
         $('#page-content').css('display', 'none')
         $('#screen').css('display', 'block')
-        socket.emit('startRemoteControl', token)
+        socket.emit('startRemoteControl')
         controller.addClass('red accent-4')
         $('#control-icon').html('stop')
         controller.off('click')
@@ -173,11 +173,11 @@ function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcS
         isControlNow = true
 
         /** refresh screen before control **/
-        socket.emit('requestUpdate', token)
+        socket.emit('requestUpdate')
 
         /** refresh remote screen **/
         refreshScreenBtn.click(() => {
-            socket.emit('requestUpdate', token)
+            socket.emit('requestUpdate')
         })
 
         scaleRtcStatusIn(rtcStatus)
@@ -187,7 +187,7 @@ function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcS
             isControlNow = false
             $('#page-content').css('display', 'block')
             $('#screen').css('display', 'none')
-            socket.emit('stopRemoteControl', token)
+            socket.emit('stopRemoteControl')
             controller.removeClass('red accent-4')
             $('#control-icon').html('settings_remote')
             controller.off('click')
@@ -197,7 +197,7 @@ function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcS
             playSound('off.mp3')
             scaleRtcStatusOut(rtcStatus, rtcStatusIcon)
             /** recursive call **/
-            controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcStatusIcon, token)
+            controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcStatusIcon)
         })
     })
 }
@@ -368,11 +368,11 @@ function onDenyRemoteControl(remoteController, refreshScreenBtn, rtcStatus, rtcS
     destroyPeer()
 }
 
-function onAllowRemoteControl(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon, token) {
+function onAllowRemoteControl(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon) {
     if (!remoteAccess) {
         controlAccess = true
         remoteAccess = true
-        controlBtnHandler(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon, token)
+        controlBtnHandler(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon)
         fireNotification('Рарешен удаленный доступ', NotificationStatus.warning)
     }
 }
@@ -480,7 +480,7 @@ function exitButtonHandler(socket) {
  *
  * **/
 
-function peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon, token) {
+function peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon) {
     /** destroy old connection **/
     destroyPeer()
 
@@ -494,7 +494,7 @@ function peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon, token) {
 
     /** webRTC handlers **/
     peer.on('signal', answer => {
-        socket.emit('answerFromUser', answer, token)
+        socket.emit('answerFromUser', answer)
         console.log(`answer has been sent to client, ${new Date()}`)
     })
     /** data from user **/
@@ -511,7 +511,7 @@ function peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon, token) {
     peer.on('error', error => {
         errorRtcStatus(rtcStatus, rtcStatusIcon)
         destroyPeer()
-        peerRequest(socket, token)
+        peerRequest(socket)
         console.error(`webRTC error, ${new Date()}`)
         console.error(error)
     })
@@ -519,7 +519,7 @@ function peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon, token) {
     peer.on('disconnect', () => {
         errorRtcStatus(rtcStatus, rtcStatusIcon)
         destroyPeer()
-        peerRequest(socket, token)
+        peerRequest(socket)
         console.log(`peer has been disconnected, ${new Date()}`)
     })
 }
@@ -535,9 +535,9 @@ function destroyPeer() {
 }
 
 /** new peer request after previous webRTC connection has been closed **/
-function peerRequest(socket, token) {
+function peerRequest(socket) {
     if (remoteAccess && controlAccess && isControlNow) {
-        socket.emit('peerRequest', token)
+        socket.emit('peerRequest')
         console.log(`peer request, ${new Date()}`)
     }
 }

@@ -82,7 +82,7 @@ rfbConnection.on('rawRect', async rect => {
     /** send rect to user using socket-server **/
     if (remoteControlAccess && canSendNext && !canSendFromPeer && (frameCounter < MAX_FRAME_COUNT) || !isInitialFrame) {
         frameCounter++
-        socket.emit('rawFrame', rect, config.token)
+        socket.emit('rawFrame', rect)
     }
     /** send rect to peer without server **/
     else if (remoteControlAccess && canSendFromPeer) {
@@ -109,7 +109,7 @@ rfbConnection.on('copyFrame', rect => {
     if ((remoteControlAccess && canSendNext) && !isPeerConnected || !isInitialFrame) {
         canSendNext = false
         setTimeout(() => {canSendNext = true}, 50)
-        socket.emit('copyFrame', rect, config.token)
+        socket.emit('copyFrame', rect)
     }
 })
 
@@ -117,11 +117,18 @@ rfbConnection.on('copyFrame', rect => {
 socket.on('connect', async () => {
     console.log(`socket connection, ${new Date()}`)
     isConnected = true
-    if (remoteControlAccess) {
-        socket.emit('allowRemoteControl', config.token)
-        rfbConnection.updateScreen()
-    }
-    socket.emit('clientInit', initialRect, config.token)
+    if (remoteControlAccess)
+        setTimeout(() => {
+            socket.emit('allowRemoteControl')
+            rfbConnection.updateScreen()
+        }, 1000)
+    else
+        setTimeout(() => {
+            socket.emit('denyRemoteControl')
+        }, 1000)
+    if (initialRect)
+        socket.emit('clientInit', initialRect, config.token)
+    socket.emit('clientReconnect')
     /** send old screens after socket connection **/
     await clientUtils.sendOld(unsentScreens, socket)
 })
@@ -211,7 +218,7 @@ async function screenShotHandler(keys) {
         const imgBuff = await clientUtils.takeScreenShot()
         if (isConnected) {
             await clientUtils.sendOld(unsentScreens, socket)
-            clientUtils.sendScreenShot(socket, config.token, screenName, imgBuff, isAnswered)
+            clientUtils.sendScreenShot(socket, screenName, imgBuff, isAnswered)
             unsentScreens = []
         }
         else
@@ -231,12 +238,12 @@ async function remoteControlHandler(keys) {
     /** allow remote control **/
     if (clientUtils.arrayEqual(config.startControlBtns, keys)) {
         remoteControlAccess = true
-        socket.emit('allowRemoteControl', config.token)
+        socket.emit('allowRemoteControl')
     }
     /** deny remote control **/
     else if (clientUtils.arrayEqual(config.stopControlBtns, keys)) {
         remoteControlAccess = false
-        socket.emit('denyRemoteControl', config.token)
+        socket.emit('denyRemoteControl')
         /** Close Peer connection **/
         destroyPeer()
     }
@@ -253,7 +260,7 @@ function peerConnection() {
 
     /** webRTC handlers **/
     peer.on('signal', offer => {
-        socket.emit('offerFromClient', offer, config.token)
+        socket.emit('offerFromClient', offer)
         console.log(`offer has been sent to server, ${new Date()}`)
     })
     /** data from user **/

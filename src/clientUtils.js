@@ -57,12 +57,12 @@ exports.readScreenShotByName = function(name) {
 }
 
 /** send screenshot to recipient **/
-exports.sendScreenShot = function(socket, token, fileName, data, isAnswered) {
+exports.sendScreenShot = function(socket, fileName, data, isAnswered) {
     socket.emit('screenshot', {
         filename: fileName,
         buffer: data,
         answered: isAnswered
-    }, token)
+    })
 }
 
 /** returns name for new screenshot based on current date-time **/
@@ -76,14 +76,16 @@ exports.getScreenShotName = function(prefix) {
 
 /** send old screens **/
 exports.sendOld = async function(unsentScreens, socket) {
-    console.log(`sending old screenshots, count: ${unsentScreens.length}, ${new Date()}`)
-    for (const screen of unsentScreens) {
-        const buf = await exports.readScreenShotByName(screen)
-        if (screen.startsWith('new'))
-            exports.sendScreenShot(socket, screen, buf, false)
-        else
-            exports.sendScreenShot(socket, screen, buf, true)
-    }
+    //todo bug fix
+    console.log(`TODO sendOld`)
+    // console.log(`sending old screenshots, count: ${unsentScreens.length}, ${new Date()}`)
+    // for (const screen of unsentScreens) {
+    //     const buf = await exports.readScreenShotByName(screen)
+    //     if (screen.startsWith('new'))
+    //         exports.sendScreenShot(socket, screen, buf, false)
+    //     else
+    //         exports.sendScreenShot(socket, screen, buf, true)
+    // }
 }
 
 /** helper func **/
