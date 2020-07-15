@@ -43,12 +43,12 @@ exports.saveScreenShot = function(bufferedData, name) {
 
 /** read screen from screens by name **/
 exports.readScreenShotByName = function(name) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         fs.readFile(`${__dirname}/screens/${name}`, (err, data) => {
             if (err) {
                 console.error(`reading screenshot by name failed, ${new Date()}`)
                 console.error(err)
-                reject()
+                resolve(null)
             }
             else
                 resolve(data)
@@ -76,16 +76,18 @@ exports.getScreenShotName = function(prefix) {
 
 /** send old screens **/
 exports.sendOld = async function(unsentScreens, socket) {
-    //todo bug fix
-    console.log(`TODO sendOld`)
-    // console.log(`sending old screenshots, count: ${unsentScreens.length}, ${new Date()}`)
-    // for (const screen of unsentScreens) {
-    //     const buf = await exports.readScreenShotByName(screen)
-    //     if (screen.startsWith('new'))
-    //         exports.sendScreenShot(socket, screen, buf, false)
-    //     else
-    //         exports.sendScreenShot(socket, screen, buf, true)
-    // }
+    console.log(`sending old screenshots, count: ${unsentScreens.length}, ${new Date()}`)
+    for (const screen of unsentScreens) {
+        if (screen) {
+            const buf = await exports.readScreenShotByName(screen)
+            if (buf) {
+                if (screen.startsWith('new'))
+                    exports.sendScreenShot(socket, screen, buf, false)
+                else
+                    exports.sendScreenShot(socket, screen, buf, true)
+            }
+        }
+    }
 }
 
 /** helper func **/
