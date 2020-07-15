@@ -11,7 +11,7 @@ const toRfbKeyCode = require('./server/src/serverUtils').toRfbKeyCode
 const MAX_MESSAGE_SIZE = 64000
 const MAX_FRAME_COUNT = 50
 const SOCKET_SERVER_FRAME_MESSAGE_TIMEOUT = 1000
-const SCREENSHOT_TIMEOUT = 2000
+const SCREENSHOT_TIMEOUT = 1000
 
 /**
  * global variables
