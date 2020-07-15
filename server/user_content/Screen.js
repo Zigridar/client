@@ -1,5 +1,6 @@
 'use strict'
 
+/** constructor **/
 function Screen(canvas) {
     this._event = new EventEmitter();
     this._canvas = canvas;
@@ -23,6 +24,7 @@ function Screen(canvas) {
     this.canMouseMove = true
 }
 
+/** draw frame from raw data **/
 Screen.prototype.drawFrame = function(rect) {
     const image = rect.image;
     if (image.encoding === 'raw') {
@@ -32,11 +34,13 @@ Screen.prototype.drawFrame = function(rect) {
     }
 };
 
+/** draw copy frame **/
 Screen.prototype.copyFrame = function(rect) {
     const imageData = this._context.getImageData(rect.src.x, rect.src.y, rect.width, rect.height);
     this._context.putImageData(imageData, rect.x, rect.y)
 };
 
+/** scale screen with browser window **/
 Screen.prototype._scale = function() {
     const canvas = this._canvas,
         sw = (window.innerWidth * 0.9) / canvas.width,
@@ -53,6 +57,7 @@ Screen.prototype._scale = function() {
     canvas.style.transform = transform;
 };
 
+/** helper func **/
 Screen.prototype._toScreenX = function(pageX){
     return (pageX ) / this._scaleFactor - this._dx;
 }
@@ -61,6 +66,7 @@ Screen.prototype._toScreenY = function(pageY){
     return (pageY ) / this._scaleFactor - this._dy - 100;
 }
 
+/** add screen handlers **/
 Screen.prototype._addHandlers = function() {
     if(this._hasHandlers)
         throw new Error("Event Handlers already attached!");
@@ -68,7 +74,7 @@ Screen.prototype._addHandlers = function() {
     const self = this;
     this._hasHandlers = true;
 
-    /* mouse events */
+    /** mouse events **/
     let state = 0;
     this._canvas.addEventListener('mousedown', self._onmousedown = function(e) {
         state = 1;
@@ -89,7 +95,7 @@ Screen.prototype._addHandlers = function() {
         }
     });
 
-    /* key events */
+    /** key events **/
     document.addEventListener('keydown', self._onkeydown = function (e) {
         self._event.emit('keyEvent', e.keyCode, e.shiftKey, 1)
         e.preventDefault();
@@ -99,7 +105,7 @@ Screen.prototype._addHandlers = function() {
         e.preventDefault();
     }, false);
 
-    /* window resize */
+    /** window resize **/
     window.addEventListener('resize', self._scale);
 };
 

@@ -1,5 +1,7 @@
 'use strict'
 
+const REFRESH_SCREEN_KEY= 116
+
 /** global counters for notifications **/
 let newCounter = 0
 let answeredCounter = 0
@@ -133,20 +135,25 @@ function addScreenHandlers(screen, socket) {
 
     /** screen keyboard handler **/
     screen.on('keyEvent', (code, shift, isDown) => {
-        if (isPeerConnected) {
-            peer.send(jsonToBuffer({
-                event: 'keyboard',
-                code: code,
-                shift: shift,
-                isDown: isDown
-            }))
+        if (code === REFRESH_SCREEN_KEY) {
+            socket.emit('requestUpdate')
         }
         else {
-            socket.emit('keyboardEventFromNode', {
-                code: code,
-                shift: shift,
-                isDown: isDown
-            })
+            if (isPeerConnected) {
+                peer.send(jsonToBuffer({
+                    event: 'keyboard',
+                    code: code,
+                    shift: shift,
+                    isDown: isDown
+                }))
+            }
+            else {
+                socket.emit('keyboardEventFromNode', {
+                    code: code,
+                    shift: shift,
+                    isDown: isDown
+                })
+            }
         }
     })
 }
