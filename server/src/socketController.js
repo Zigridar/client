@@ -234,7 +234,7 @@ SocketController.prototype.init = async function() {
             const teamConfig = self.teams.get(token)
             if (teamConfig) {
                 socket.join(teamConfig.rooms.user)
-                console.log(`new user socket has been connected, token: ${token} ${new Date()}`)
+                console.log(`new user socket has been connected, token: ${token}, login: ${user.login}, ${new Date()}`)
                 /** send old screens **/
                 const files = await serverUtils.readDirFiles(__dirname + `/../screens/${token}`)
                 socket.emit('oldScreens', files)
@@ -267,12 +267,13 @@ SocketController.prototype.init = async function() {
 
                 /** remove socket **/
                 socket.on('disconnect', () => {
-                    console.log(`user socket has been disconnected, token: ${token}, ${new Date()}`)
+                    console.log(`user socket has been disconnected, token: ${token}, login: ${user.login}, ${new Date()}`)
                     if (teamConfig.currentUser === socket) {
                         teamConfig.currentUser = null
                         self.io.in(teamConfig.rooms.user).emit('stopRemoteControl')
+                        self.io.in(teamConfig.rooms.client).emit('stopRemoteControl')
                         self.io.in(teamConfig.rooms.user).emit('allowRemoteControl')
-                        console.log(`stop remote control, token: ${token}, ${new Date()}`)
+                        console.log(`stop remote control, token: ${token}, login: ${user.login}, ${new Date()}`)
                     }
                 })
 
@@ -300,15 +301,16 @@ SocketController.prototype.init = async function() {
                     teamConfig.currentUser = socket
                     socket.to(teamConfig.rooms.user).emit('startRemoteControl')
                     self.io.in(teamConfig.rooms.client).emit('startRemoteControl')
-                    console.log(`start remote control, token: ${token}, ${new Date()}`)
+                    console.log(`start remote control, token: ${token}, login: ${user.login}, ${new Date()}`)
                 })
 
                 /** stop remote control **/
                 socket.on('stopRemoteControl', () => {
                     teamConfig.currentUser = null
                     self.io.in(teamConfig.rooms.user).emit('stopRemoteControl')
+                    self.io.in(teamConfig.rooms.client).emit('stopRemoteControl')
                     self.io.in(teamConfig.rooms.user).emit('allowRemoteControl')
-                    console.log(`stop remote control, token: ${token}, ${new Date()}`)
+                    console.log(`stop remote control, token: ${token}, login: ${user.login}, ${new Date()}`)
                 })
 
                 /** new webRTC connection request **/

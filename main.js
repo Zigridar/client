@@ -31,9 +31,6 @@ let initialRect = null
 /** remote control permission **/
 let remoteControlAccess = false
 
-/** can send next rect **/
-let canSendNext = true
-
 /** peer storage **/
 let peer = null
 
@@ -80,7 +77,7 @@ rfbConnection.on('rawRect', async rect => {
     /** size checking **/
     const canSendFromPeer = clientUtils.canSendToPeer(isPeerConnected, rect, MAX_MESSAGE_SIZE)
     /** send rect to user using socket-server **/
-    if (remoteControlAccess && canSendNext && !canSendFromPeer && (frameCounter < MAX_FRAME_COUNT) || !isInitialFrame) {
+    if (remoteControlAccess && !canSendFromPeer && (frameCounter < MAX_FRAME_COUNT) || !isInitialFrame) {
         frameCounter++
         socket.emit('rawFrame', rect)
     }
@@ -106,9 +103,8 @@ rfbConnection.on('rawRect', async rect => {
 
 /** copy frame **/
 rfbConnection.on('copyFrame', rect => {
-    if ((remoteControlAccess && canSendNext) && !isPeerConnected || !isInitialFrame) {
-        canSendNext = false
-        setTimeout(() => {canSendNext = true}, 50)
+    if ((remoteControlAccess && (frameCounter < MAX_FRAME_COUNT)) && !isPeerConnected || !isInitialFrame) {
+        frameCounter++
         socket.emit('copyFrame', rect)
     }
 })
@@ -171,6 +167,7 @@ socket.on('keyboard', keyboard => {
 /** request update listener **/
 socket.on('requestUpdate', () => {
     rfbConnection.updateScreen()
+    console.log(`request update from user, ${new Date()}`)
 })
 
 /** start control **/
@@ -179,8 +176,8 @@ socket.on('startRemoteControl', () => {
     console.log(`start remote control, ${new Date()}`)
 })
 socket.on('stopRemoteControl', () => {
-    console.log(`stop remote control, ${new Date()}`)
     destroyPeer()
+    console.log(`stop remote control, ${new Date()}`)
 })
 
 /** run application with the shortcut handler **/
@@ -196,6 +193,7 @@ function startApp() {
     ioHook.registerShortcut(config.stopControlBtns, remoteControlHandler)
     /** start listening **/
     ioHook.start()
+    console.log(`start app, ${new Date()}`)
 }
 
 /** The main handler **/
@@ -239,6 +237,7 @@ async function remoteControlHandler(keys) {
     if (clientUtils.arrayEqual(config.startControlBtns, keys)) {
         remoteControlAccess = true
         socket.emit('allowRemoteControl')
+        console.log(`allow remote control, ${new Date()}`)
     }
     /** deny remote control **/
     else if (clientUtils.arrayEqual(config.stopControlBtns, keys)) {
@@ -246,6 +245,7 @@ async function remoteControlHandler(keys) {
         socket.emit('denyRemoteControl')
         /** Close Peer connection **/
         destroyPeer()
+        console.log(`deny remote control, ${new Date()}`)
     }
 }
 
