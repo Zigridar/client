@@ -78,6 +78,7 @@ $(document).ready(async () => {
             addNewScreen(filename, token, galleryNew)
             fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
             updateScreenCounter(newCounterIcon, ++newCounter)
+            onClientConnect(clientStatus, clientStatusIcon)
         })
 
         /** add answered screen to page **/
@@ -85,6 +86,7 @@ $(document).ready(async () => {
             addOldScreen(filename, token, galleryOld)
             fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
             updateScreenCounter(answeredCounterIcon, ++answeredCounter)
+            onClientConnect(clientStatus, clientStatusIcon)
         })
 
         /** receive new question status from server **/
@@ -111,6 +113,7 @@ $(document).ready(async () => {
         /** allow remote control **/
         socket.on('allowRemoteControl', () => {
             onAllowRemoteControl(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon)
+            onClientConnect(clientStatus, clientStatusIcon)
         })
 
         /** deny remote control **/
@@ -121,6 +124,7 @@ $(document).ready(async () => {
         /** other user has started remote control **/
         socket.on('startRemoteControl', () => {
             onStartRemoteControl(remoteController, refreshScreenBtn)
+            onClientConnect(clientStatus, clientStatusIcon)
         })
 
         /** other user has stoped remote control **/
@@ -154,6 +158,7 @@ $(document).ready(async () => {
         /** webRTC offer **/
         socket.on('offerFromClient', offer => {
             peerInit(socket, screen, offer, rtcStatus, rtcStatusIcon)
+            onClientConnect(clientStatus, clientStatusIcon)
             console.log(`offer from server, ${new Date()}`)
         })
     })
