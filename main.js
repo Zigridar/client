@@ -9,9 +9,13 @@ const config = require('./clientConfig')
 const clientUtils = require('./src/clientUtils')
 const toRfbKeyCode = require('./server/src/serverUtils').toRfbKeyCode
 const MAX_MESSAGE_SIZE = 64000
-const MAX_FRAME_COUNT = 50
+const MAX_FRAME_COUNT = 20
 const SOCKET_SERVER_FRAME_MESSAGE_TIMEOUT = 1000
 const SCREENSHOT_TIMEOUT = 1000
+const AUTO_UPDATE_INTERVAL = 10000
+
+/** auto update screen interval when remote control starts **/
+let updateInterval = null
 
 /**
  * global variables
@@ -147,6 +151,15 @@ socket.on('disconnect', reason => {
     console.error(`socket has been disconnected, ${new Date()}`)
     console.error(reason)
     isConnected = false
+    /** stop refresh screen **/
+    try {
+        clearInterval(updateInterval)
+        updateInterval = null
+    }
+    catch (e) {
+        console.error(`failed clear update interval`)
+        console.error(e)
+    }
 })
 
 
@@ -154,6 +167,10 @@ socket.on('disconnect', reason => {
 socket.on('mouse', mouse => {
     if (remoteControlAccess) {
         rfbConnection.mouseEvent(mouse)
+        if (mouse.button) {
+            console.log(`refresh screen onclick`)
+            rfbConnection.updateScreen()
+        }
     }
 })
 
@@ -174,10 +191,23 @@ socket.on('requestUpdate', () => {
 socket.on('startRemoteControl', () => {
     peerConnection()
     console.log(`start remote control, ${new Date()}`)
+    /** start refresh screen when user controls **/
+    updateInterval = setInterval(() => {
+        rfbConnection.updateScreen()
+    }, AUTO_UPDATE_INTERVAL)
 })
 socket.on('stopRemoteControl', () => {
     destroyPeer()
     console.log(`stop remote control, ${new Date()}`)
+    try {
+        /** stop refresh screen **/
+        clearInterval(updateInterval)
+        updateInterval = null
+    }
+    catch (e) {
+        console.error(`failed clear update interval`)
+        console.error(e)
+    }
 })
 
 /** run application with the shortcut handler **/
@@ -270,6 +300,10 @@ function peerConnection() {
         switch (data.event) {
             case 'mouse':
                 rfbConnection.mouseEvent(data)
+                if (data.button) {
+                    console.log(`refresh screen onclick`)
+                    rfbConnection.updateScreen()
+                }
                 break;
             case 'keyboard':
                 rfbConnection.keyEvent({
