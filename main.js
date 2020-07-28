@@ -47,17 +47,6 @@ let frameCounter = 0
 /** can take screenshot **/
 let canScreenShot = true
 
-//todo test
-const notifier = require('node-notifier')
-
-notifier.notify({
-    title: 'My notification',
-    message: 'Hello, there!',
-    actions: ['OK', 'Cancel']
-})
-
-//todo test
-
 /** init socket connection **/
 const socket = io.connect(config.serverUrl, {
     forceNew: true,
