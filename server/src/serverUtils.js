@@ -26,7 +26,7 @@ exports.removeScreens =  async function(isNew, room, token, socket) {
 
 /** read all files in the directory **/
 exports.readDirFiles = function(path) {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
         fs.readdir(path, (err, files) => {
             if (err)
                 resolve([])
@@ -92,13 +92,13 @@ exports.saveScreen = async function(token, fileName, data, callback) {
 
 /** load users from users.json **/
 exports.loadUsers = function() {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
         fs.readFile(__dirname + `/../users.json`, (err, data) => {
             if (err) {
                 const newUsers = {users: []}
                 fs.writeFile(__dirname + `/../users.json`, JSON.stringify(newUsers), _err => {
                     if (_err)
-                        reject({users: []})
+                        resolve({users: []})
                     else
                         resolve(newUsers)
                 })
