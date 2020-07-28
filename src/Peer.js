@@ -202,13 +202,13 @@ class Peer extends stream.Duplex {
      * @param {ArrayBufferView|ArrayBuffer|Buffer|string|Blob} chunk
      */
     send (chunk) {
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             if (this._channel && this._channel.readyState === 'open') {
                 this._channel.send(chunk)
                 resolve(true)
             }
             else
-                reject(false)
+                resolve(false)
         })
     }
 
