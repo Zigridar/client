@@ -1,6 +1,7 @@
 'use strict'
 
 const REFRESH_SCREEN_KEY= 116
+const ESC_KEY = 27
 
 /** global counters for notifications **/
 let newCounter = 0
@@ -14,6 +15,9 @@ let isControlNow = false
 /** global peer storage **/
 let peer = null
 let isPeerConnected = false
+
+/** can mouse move **/
+let canMouseMove = false
 
 /** gallery options **/
 const galleryOptions_new = {
@@ -112,24 +116,41 @@ function errorDialog(text) {
     })
 }
 
+/** switch canMouseMove and mouse icon **/
+function toggleMouseMove() {
+    const screen = $(`#screen`)
+    if (canMouseMove) {
+        screen.css('cursor', 'auto')
+        canMouseMove = false
+        fireNotification('Курсор не передается', NotificationStatus.info)
+    }
+    else {
+        screen.css('cursor', 'none')
+        canMouseMove = true
+        fireNotification('Курсор передается', NotificationStatus.info)
+    }
+}
+
 /** add screen handlers to screen **/
 function addScreenHandlers(screen, socket) {
     /** screen mouse handler **/
     screen.on('mouseEvent', (x, y, button) => {
-        if (isPeerConnected) {
-            peer.send(jsonToBuffer({
-                event: 'mouse',
-                x: x,
-                y: y,
-                button: button
-            }))
-        }
-        else {
-            socket.emit('mouseEventFromNode', {
-                x: x,
-                y: y,
-                button: button
-            })
+        if (canMouseMove) {
+            if (isPeerConnected) {
+                peer.send(jsonToBuffer({
+                    event: 'mouse',
+                    x: x,
+                    y: y,
+                    button: button
+                }))
+            }
+            else {
+                socket.emit('mouseEventFromNode', {
+                    x: x,
+                    y: y,
+                    button: button
+                })
+            }
         }
     })
 
@@ -137,6 +158,9 @@ function addScreenHandlers(screen, socket) {
     screen.on('keyEvent', (code, shift, isDown) => {
         if (code === REFRESH_SCREEN_KEY) {
             socket.emit('requestUpdate')
+        }
+        else if (code === ESC_KEY && isDown) {
+            toggleMouseMove()
         }
         else {
             if (isPeerConnected) {
