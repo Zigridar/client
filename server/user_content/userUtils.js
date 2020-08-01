@@ -23,6 +23,7 @@ let canMouseMove = false
 let canWebRTC = true
 
 /** gallery options **/
+let isInView = false
 const galleryOptions_new = {
     loop: false,
     thumbnail: true,
@@ -355,7 +356,7 @@ function fireNotification(text, notificationStatus) {
 }
 
 /** add answered screen **/
-function addOldScreen(name, token, galleryOld) {
+function addOldScreen(name, token, galleryOld, isInView) {
     const slide =
         `  
         <a href="/${token + name}">
@@ -366,12 +367,12 @@ function addOldScreen(name, token, galleryOld) {
         </a>
         `
     galleryOld.append(slide)
-    galleryOld.data('lightGallery').destroy(true)
-    galleryOld.lightGallery(galleryOptions_old)
+    if (!isInView)
+        refreshGallery(galleryOld, galleryOptions_old)
 }
 
 /** add new screen to new screens **/
-function addNewScreen(name, token, galleryNew) {
+function addNewScreen(name, token, galleryNew, isInView) {
     const slide =
         `  
         <a href="/${token + name}">
@@ -382,8 +383,14 @@ function addNewScreen(name, token, galleryNew) {
         </a>
         `
     galleryNew.append(slide)
-    galleryNew.data('lightGallery').destroy(true)
-    galleryNew.lightGallery(galleryOptions_new)
+    if (!isInView)
+        refreshGallery(galleryNew, galleryOptions_new)
+}
+
+/** refresh gallery **/
+function refreshGallery(gallery, options) {
+    gallery.data('lightGallery').destroy(true)
+    gallery.lightGallery(options)
 }
 
 /**
@@ -521,11 +528,26 @@ async function initPage(
         newCounterIcon.removeClass('scale-in')
         newCounterIcon.addClass('scale-out')
         newCounter = 0
+        isInView = true
     })
+
+    galleryNew.on('onBeforeClose.lg', () => {
+        isInView = false
+        refreshGallery(galleryNew, galleryOptions_new)
+        refreshGallery(galleryOld, galleryOptions_old)
+    })
+
     galleryOld.on('onBeforeOpen.lg', () => {
         answeredCounterIcon.removeClass('scale-in')
         answeredCounterIcon.addClass('scale-out')
         answeredCounter = 0
+        isInView = true
+    })
+
+    galleryOld.on('onBeforeClose.lg', () => {
+        isInView = false
+        refreshGallery(galleryOld, galleryOptions_old)
+        refreshGallery(galleryNew, galleryOptions_new)
     })
 
     /** init exit button **/

@@ -66,17 +66,17 @@ $(document).ready(async () => {
         socket.on('oldScreens', files => {
             files.forEach(item => {
                 if (item.startsWith('new')){
-                    addNewScreen(`/${item}`, token, galleryNew)
+                    addNewScreen(`/${item}`, token, galleryNew, isInView)
                 }
                 else {
-                    addOldScreen(`/${item}`, token, galleryOld)
+                    addOldScreen(`/${item}`, token, galleryOld, isInView)
                 }
             })
         })
 
         /** add new screen to page **/
         socket.on('newScreenshot', filename => {
-            addNewScreen(filename, token, galleryNew)
+            addNewScreen(filename, token, galleryNew, isInView)
             fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
             updateScreenCounter(newCounterIcon, ++newCounter)
             onClientConnect(clientStatus, clientStatusIcon)
@@ -84,7 +84,7 @@ $(document).ready(async () => {
 
         /** add answered screen to page **/
         socket.on('answeredScreenshot', filename => {
-            addOldScreen(filename, token, galleryOld)
+            addOldScreen(filename, token, galleryOld, isInView)
             fireNotification(`Получени новый скрин ${filename.substr(1, filename.length - 1)}`, NotificationStatus.info)
             updateScreenCounter(answeredCounterIcon, ++answeredCounter)
             onClientConnect(clientStatus, clientStatusIcon)

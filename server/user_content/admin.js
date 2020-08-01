@@ -88,10 +88,10 @@ $(document).ready(async () => {
     socket.on('screensForToken', (files, token) => {
         files.forEach(item => {
             if (item.startsWith('new')){
-                addNewScreen(`/${item}`, token, galleryNew)
+                addNewScreen(`/${item}`, token, galleryNew, isInView)
             }
             else {
-                addOldScreen(`/${item}`, token, galleryOld)
+                addOldScreen(`/${item}`, token, galleryOld, isInView)
             }
         })
 
