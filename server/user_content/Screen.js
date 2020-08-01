@@ -1,8 +1,9 @@
 'use strict'
 
 /** constructor **/
-function Screen(canvas) {
+function Screen(canvas, ctrlKeyAccess) {
     this._event = new EventEmitter();
+    this._ctrlKeyAccess = ctrlKeyAccess;
     this._canvas = canvas;
     this._context = canvas.getContext('2d');
     this._hasHandlers = false;
@@ -97,7 +98,8 @@ Screen.prototype._addHandlers = function() {
 
     /** key events **/
     document.addEventListener('keydown', self._onkeydown = function (e) {
-        self._event.emit('keyEvent', e.keyCode, e.shiftKey, 1)
+        if (!e.ctrlKey || self._ctrlKeyAccess)
+            self._event.emit('keyEvent', e.keyCode, e.shiftKey, 1)
         e.preventDefault();
     }, false);
     document.addEventListener('keyup', self._onkeyup = function (e) {

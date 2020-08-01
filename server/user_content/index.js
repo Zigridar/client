@@ -21,7 +21,7 @@ $(document).ready(async () => {
     const webRTCSwitch = $('#web-rtc-switch')
 
     /** screen init **/
-    const screen = new Screen(document.getElementById('screen'))
+    const screen = new Screen(document.getElementById('screen'), false)
 
     /** socket init **/
     const socket = await io.connect({
