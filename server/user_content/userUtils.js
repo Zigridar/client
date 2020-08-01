@@ -138,7 +138,7 @@ function toggleMouseMove() {
 function addScreenHandlers(screen, socket) {
     /** screen mouse handler **/
     screen.on('mouseEvent', (x, y, button) => {
-        if (canMouseMove) {
+        if (canMouseMove && isControlNow) {
             if (isPeerConnected && canWebRTC) {
                 peer.send(jsonToBuffer({
                     event: 'mouse',
@@ -159,27 +159,29 @@ function addScreenHandlers(screen, socket) {
 
     /** screen keyboard handler **/
     screen.on('keyEvent', (code, shift, isDown) => {
-        if (code === REFRESH_SCREEN_KEY) {
-            socket.emit('requestUpdate')
-        }
-        else if (code === ESC_KEY && isDown) {
-            toggleMouseMove()
-        }
-        else {
-            if (isPeerConnected && canWebRTC) {
-                peer.send(jsonToBuffer({
-                    event: 'keyboard',
-                    code: code,
-                    shift: shift,
-                    isDown: isDown
-                }))
+        if (isControlNow) {
+            if (code === REFRESH_SCREEN_KEY) {
+                socket.emit('requestUpdate')
+            }
+            else if (code === ESC_KEY && isDown) {
+                toggleMouseMove()
             }
             else {
-                socket.emit('keyboardEventFromNode', {
-                    code: code,
-                    shift: shift,
-                    isDown: isDown
-                })
+                if (isPeerConnected && canWebRTC) {
+                    peer.send(jsonToBuffer({
+                        event: 'keyboard',
+                        code: code,
+                        shift: shift,
+                        isDown: isDown
+                    }))
+                }
+                else {
+                    socket.emit('keyboardEventFromNode', {
+                        code: code,
+                        shift: shift,
+                        isDown: isDown
+                    })
+                }
             }
         }
     })
