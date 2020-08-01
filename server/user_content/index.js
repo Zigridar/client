@@ -18,6 +18,7 @@ $(document).ready(async () => {
     const rtcStatusIcon = $('#rtc-status-icon')
     const exitBtn = $('#exit-btn')
     const questionContainer = $('#question_card')
+    const webRTCSwitch = $('#web-rtc-switch')
 
     /** screen init **/
     const screen = new Screen(document.getElementById('screen'))
@@ -112,18 +113,18 @@ $(document).ready(async () => {
 
         /** allow remote control **/
         socket.on('allowRemoteControl', () => {
-            onAllowRemoteControl(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon)
+            onAllowRemoteControl(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon, webRTCSwitch)
             onClientConnect(clientStatus, clientStatusIcon)
         })
 
         /** deny remote control **/
         socket.on('denyRemoteControl', () => {
-            onDenyRemoteControl(remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon)
+            onDenyRemoteControl(remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon, webRTCSwitch)
         })
 
         /** other user has started remote control **/
         socket.on('startRemoteControl', () => {
-            onStartRemoteControl(remoteController, refreshScreenBtn)
+            onStartRemoteControl(remoteController, refreshScreenBtn, webRTCSwitch)
             onClientConnect(clientStatus, clientStatusIcon)
         })
 
@@ -131,7 +132,7 @@ $(document).ready(async () => {
         socket.on('stopRemoteControl', () => {
             controlAccess = true
             if (remoteAccess) {
-                controlBtnHandler(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon)
+                controlBtnHandler(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon, webRTCSwitch)
             }
         })
 

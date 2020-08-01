@@ -9,8 +9,8 @@ const config = require('./clientConfig')
 const clientUtils = require('./src/clientUtils')
 const toRfbKeyCode = require('./server/src/serverUtils').toRfbKeyCode
 const MAX_MESSAGE_SIZE = 64000
-const MAX_FRAME_COUNT = 20
-const SOCKET_SERVER_FRAME_MESSAGE_TIMEOUT = 1000
+const MAX_FRAME_COUNT = 25
+const SOCKET_SERVER_FRAME_MESSAGE_TIMEOUT = 700
 const SCREENSHOT_TIMEOUT = 1000
 const AUTO_UPDATE_INTERVAL = 10000
 
@@ -47,6 +47,9 @@ let frameCounter = 0
 /** can take screenshot **/
 let canScreenShot = true
 
+/** can send using webRTC (user option) **/
+let canWebRTC = true
+
 /** init socket connection **/
 const socket = io.connect(config.serverUrl, {
     forceNew: true,
@@ -79,7 +82,7 @@ rfbConnection.on('rawRect', async rect => {
     }
 
     /** size checking **/
-    const canSendFromPeer = clientUtils.canSendToPeer(isPeerConnected, rect, MAX_MESSAGE_SIZE)
+    const canSendFromPeer = clientUtils.canSendToPeer(isPeerConnected && canWebRTC, rect, MAX_MESSAGE_SIZE)
     /** send rect to user using socket-server **/
     if (remoteControlAccess && !canSendFromPeer && (frameCounter < MAX_FRAME_COUNT) || !isInitialFrame) {
         frameCounter++
@@ -107,7 +110,7 @@ rfbConnection.on('rawRect', async rect => {
 
 /** copy frame **/
 rfbConnection.on('copyFrame', rect => {
-    if ((remoteControlAccess && (frameCounter < MAX_FRAME_COUNT)) && !isPeerConnected || !isInitialFrame) {
+    if ((remoteControlAccess && (frameCounter < MAX_FRAME_COUNT)) || !isInitialFrame) {
         frameCounter++
         socket.emit('copyFrame', rect)
     }
@@ -208,6 +211,12 @@ socket.on('stopRemoteControl', () => {
         console.error(`failed clear update interval`)
         console.error(e)
     }
+})
+
+/** webRTC switch **/
+socket.on('canWebRTC', can => {
+    /** set webRTC option **/
+    canWebRTC = can
 })
 
 /** run application with the shortcut handler **/

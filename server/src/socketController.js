@@ -323,6 +323,11 @@ SocketController.prototype.init = async function() {
                 socket.on('requestUpdate', () => {
                     self.io.in(teamConfig.rooms.client).emit('requestUpdate')
                 })
+
+                /** webRTC switch **/
+                socket.on('canWebRTC', can => {
+                    self.io.in(teamConfig.rooms.client).emit('canWebRTC', can)
+                })
             }
             else {
                 socket.disconnect()

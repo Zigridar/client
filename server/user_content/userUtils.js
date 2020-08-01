@@ -19,6 +19,9 @@ let isPeerConnected = false
 /** can mouse move **/
 let canMouseMove = false
 
+/** wevRTC switcher **/
+let canWebRTC = true
+
 /** gallery options **/
 const galleryOptions_new = {
     loop: false,
@@ -136,7 +139,7 @@ function addScreenHandlers(screen, socket) {
     /** screen mouse handler **/
     screen.on('mouseEvent', (x, y, button) => {
         if (canMouseMove) {
-            if (isPeerConnected) {
+            if (isPeerConnected && canWebRTC) {
                 peer.send(jsonToBuffer({
                     event: 'mouse',
                     x: x,
@@ -163,7 +166,7 @@ function addScreenHandlers(screen, socket) {
             toggleMouseMove()
         }
         else {
-            if (isPeerConnected) {
+            if (isPeerConnected && canWebRTC) {
                 peer.send(jsonToBuffer({
                     event: 'keyboard',
                     code: code,
@@ -182,8 +185,31 @@ function addScreenHandlers(screen, socket) {
     })
 }
 
+/** webRTC switch handler **/
+function webRTCSwitchHandler(webRTCSwitch, rtcStatus, socket) {
+    const checkBox = webRTCSwitch.children().children()
+    checkBox.change(() => {
+        const checked = checkBox.prop('checked')
+        if (checked) {
+            canWebRTC = true
+            if (rtcStatus.hasClass('yellow') && isPeerConnected) {
+                rtcStatus.removeClass('yellow')
+                rtcStatus.addClass('light-green')
+            }
+        }
+        else {
+            canWebRTC = false
+            if (rtcStatus.hasClass('light-green')) {
+                rtcStatus.removeClass('light-green')
+                rtcStatus.addClass('yellow')
+            }
+        }
+        socket.emit('canWebRTC', checked)
+    })
+}
+
 /** control button handler **/
-function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcStatusIcon) {
+function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcStatusIcon, webRTCSwitch) {
     controlAccess = true
     controller.off('click')
     refreshScreenBtn.off('click')
@@ -194,6 +220,8 @@ function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcS
     controller.click(() => {
         refreshScreenBtn.removeClass('scale-out')
         refreshScreenBtn.addClass('scale-in')
+        webRTCSwitch.removeClass('scale-out')
+        webRTCSwitch.addClass('scale-in')
         $('#page-content').css('display', 'none')
         $('#screen').css('display', 'block')
         socket.emit('startRemoteControl')
@@ -203,8 +231,13 @@ function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcS
         playSound('on.mp3')
         isControlNow = true
 
+        webRTCSwitchHandler(webRTCSwitch, rtcStatus, socket)
+
         /** refresh screen before control **/
         socket.emit('requestUpdate')
+
+        /** send webRTC option before control **/
+        socket.emit('canWebRTC', canWebRTC)
 
         /** refresh remote screen **/
         refreshScreenBtn.click(() => {
@@ -224,7 +257,10 @@ function controlBtnHandler(socket, controller, refreshScreenBtn, rtcStatus, rtcS
             controller.off('click')
             refreshScreenBtn.removeClass('scale-in')
             refreshScreenBtn.addClass('scale-out')
+            webRTCSwitch.removeClass('scale-in')
+            webRTCSwitch.addClass('scale-out')
             refreshScreenBtn.off('click')
+            webRTCSwitch.off('click')
             playSound('off.mp3')
             scaleRtcStatusOut(rtcStatus, rtcStatusIcon)
             /** recursive call **/
@@ -371,17 +407,19 @@ function reloadGallery(gallery, options) {
     gallery.lightGallery(options)
 }
 
-function onStartRemoteControl(remoteController, refreshScreenBtn) {
+function onStartRemoteControl(remoteController, refreshScreenBtn, webRTCSwitch) {
     controlAccess = false
     remoteController.addClass('scale-out')
     remoteController.removeClass('scale-in')
     refreshScreenBtn.addClass('scale-out')
     refreshScreenBtn.removeClass('scale-in')
+    webRTCSwitch.addClass('scale-out')
+    webRTCSwitch.removeClass('scale-in')
     fireNotification('Удаленное управление пользователем', NotificationStatus.info)
     destroyPeer()
 }
 
-function onDenyRemoteControl(remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon) {
+function onDenyRemoteControl(remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon, webRTCSwitch) {
     if (remoteAccess) {
         remoteAccess = false
         controlAccess = false
@@ -392,18 +430,21 @@ function onDenyRemoteControl(remoteController, refreshScreenBtn, rtcStatus, rtcS
         refreshScreenBtn.addClass('scale-out')
         refreshScreenBtn.removeClass('scale-in')
         remoteController.removeClass('red accent-4')
+        webRTCSwitch.addClass('scale-out')
+        webRTCSwitch.removeClass('scale-in')
         remoteController.off('click')
         refreshScreenBtn.off('click')
+        webRTCSwitch.off('click')
     }
     scaleRtcStatusOut(rtcStatus, rtcStatusIcon)
     destroyPeer()
 }
 
-function onAllowRemoteControl(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon) {
+function onAllowRemoteControl(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon, webRTCSwitch) {
     if (!remoteAccess) {
         controlAccess = true
         remoteAccess = true
-        controlBtnHandler(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon)
+        controlBtnHandler(socket, remoteController, refreshScreenBtn, rtcStatus, rtcStatusIcon, webRTCSwitch)
         fireNotification('Рарешен удаленный доступ', NotificationStatus.warning)
     }
 }

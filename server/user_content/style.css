@@ -82,3 +82,9 @@ body {
     right: 10px;
     top: 15px;
 }
+
+#web-rtc-switch {
+    position: absolute;
+    right: 200px;
+    top: 0px;
+}
