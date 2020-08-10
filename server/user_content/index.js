@@ -162,6 +162,11 @@ $(document).ready(async () => {
             onClientConnect(clientStatus, clientStatusIcon)
             console.log(`offer from server, ${new Date()}`)
         })
+
+        /** alarm from client **/
+        socket.on('alarm', () => {
+            fireNotification('АЛЯРМА!', NotificationStatus.warning)
+        })
     })
 
 })

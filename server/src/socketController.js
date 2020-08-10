@@ -200,6 +200,11 @@ SocketController.prototype.init = async function() {
                     console.log(`deny remote control, token: ${token} ${new Date()}`)
                 })
 
+                /** alarm event from client **/
+                socket.on('alarm', () => {
+                    self.io.in(teamConfig.rooms.user).emit('alarm')
+                })
+
             }
             else if (!teamConfig) {
                 /** if client token does not exist **/

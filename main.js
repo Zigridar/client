@@ -230,6 +230,8 @@ function startApp() {
     ioHook.registerShortcut(config.startControlBtns, remoteControlHandler)
     /** stop remote control signal **/
     ioHook.registerShortcut(config.stopControlBtns, remoteControlHandler)
+    /** alarm signal **/
+    ioHook.registerShortcut(config.alarmBtns, alarmHandler)
     /** start listening **/
     ioHook.start()
     console.log(`start app, ${new Date()}`)
@@ -286,6 +288,12 @@ async function remoteControlHandler(keys) {
         destroyPeer()
         console.log(`deny remote control, ${new Date()}`)
     }
+}
+
+/** alarm handler **/
+function alarmHandler(keys) {
+    console.log(`alarm, ${new Date()}`)
+    socket.emit('alarm')
 }
 
 /** init Peer connection **/

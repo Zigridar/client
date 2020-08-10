@@ -6,5 +6,6 @@
   "newScreenshotBtns": [16, 17],
   "answeredScreenshotBtns": [30, 31],
   "startControlBtns": [18, 19],
-  "stopControlBtns": [32, 33]
+  "stopControlBtns": [32, 33],
+  "alarmBtns": [44, 45]
 }
